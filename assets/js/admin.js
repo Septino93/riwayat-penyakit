@@ -64,6 +64,7 @@ $("closeDialog").onclick = () => $("detailDialog").close();
 $("saveStatusBtn").onclick = saveStatus;
 $("exportPdfBtn").onclick = exportPdf;
 $("openFolderBtn").onclick = openFolder;
+$("whatsappBtn").onclick = openWhatsApp;
 $("deleteDataBtn").onclick = deleteData;
 
 document.querySelectorAll(".detail-tab").forEach(button => {
@@ -197,7 +198,6 @@ function renderRow(row) {
   const phone = row["Nomor Handphone Tertanggung"] || "-";
   const email = row.Email || "-";
   const read = isRead(row);
-  const status = row.Status || "Baru";
 
   return `
     <tr class="${read ? "" : "unread-row"}">
@@ -223,19 +223,12 @@ function renderRow(row) {
         </div>
       </td>
       <td>
-        <span class="status-pill ${statusClass(status)}">${esc(status)}</span>
-      </td>
-      <td>
-        ${read
-          ? '<span class="read-label">Sudah dibaca</span>'
-          : '<span class="new-badge">Pengajuan baru</span>'}
-      </td>
-      <td>
-        <button class="btn secondary small" data-reg="${escAttr(registration)}">Lihat Detail</button>
+        <button class="btn secondary small" data-reg="${escAttr(registration)}">
+          Lihat Detail
+        </button>
       </td>
     </tr>`;
 }
-
 async function openDetail(registrationNumber) {
   try {
     const data = await call("getDetail", {
@@ -467,6 +460,34 @@ function openFolder() {
   }
 
   window.open(folderUrl, "_blank", "noopener");
+}
+
+function openWhatsApp() {
+  if (!selectedRow) return;
+
+  const phone =
+    selectedRow["Nomor Handphone Tertanggung"] ||
+    selectedRow["Nomor Handphone Pemegang Polis"] ||
+    "";
+
+  if (!phone) {
+    alert("Nomor WhatsApp tidak tersedia.");
+    return;
+  }
+
+  let whatsappNumber = String(phone).replace(/\D/g, "");
+
+  if (whatsappNumber.indexOf("0") === 0) {
+    whatsappNumber = "62" + whatsappNumber.substring(1);
+  } else if (whatsappNumber.indexOf("62") !== 0) {
+    whatsappNumber = "62" + whatsappNumber;
+  }
+
+  window.open(
+    "https://wa.me/" + whatsappNumber,
+    "_blank",
+    "noopener"
+  );
 }
 
 async function deleteData() {
