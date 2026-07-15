@@ -811,7 +811,7 @@ body.admin-page{
   max-width:none;
   max-height:94vh;
   padding:0;
-  display:flex;
+  display:none;
   flex-direction:column;
   overflow:hidden;
 }
