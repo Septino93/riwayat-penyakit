@@ -256,9 +256,6 @@ async function apiPost(payload, timeoutMs = 240000) {
   try {
     const response = await fetch(getApiUrl(), {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
       body: JSON.stringify(payload),
       signal: controller.signal
     });
@@ -285,6 +282,11 @@ async function apiPost(payload, timeoutMs = 240000) {
     if (error.name === 'AbortError') {
       throw new Error('Proses terlalu lama dan dihentikan.');
     }
+
+    if (/load failed|failed to fetch|networkerror/i.test(String(error.message || error))) {
+      throw new Error('Koneksi ke Google Apps Script gagal. Muat ulang halaman lalu coba kirim kembali.');
+    }
+
     throw error;
   } finally {
     clearTimeout(timeout);
