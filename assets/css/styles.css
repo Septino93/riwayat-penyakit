@@ -107,3 +107,18 @@ dialog .dialog-actions select{width:auto;margin:0}
   .admin-dialog-actions{align-items:stretch;flex-direction:column}
   .admin-dialog-actions>*{width:100%!important}
 }
+
+/* Pertanyaan 12e - lampiran buku imunisasi */
+.immunization-upload-label{
+  display:block;
+  margin-top:16px;
+  margin-bottom:6px;
+  font-weight:700;
+  color:#334155;
+}
+.conditional-help{
+  display:block;
+  margin-top:7px;
+  color:#667085;
+  font-weight:500;
+}
