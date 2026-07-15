@@ -363,6 +363,37 @@ function activateTab(tabName) {
   });
 }
 
+async function saveStatus() {
+  if (!selectedReg) return;
+
+  $("saveStatusBtn").disabled = true;
+  $("saveStatusBtn").textContent = "Menyimpan...";
+
+  try {
+    const status = $("detailStatus").value;
+
+    await call("updateStatus", {
+      session,
+      registrationNumber: selectedReg,
+      status
+    });
+
+    const localRow = rows.find(row => row["Nomor Registrasi"] === selectedReg);
+    if (localRow) localRow.Status = status;
+    if (selectedRow) selectedRow.Status = status;
+
+
+    updateStats();
+    render();
+    alert("Status berhasil diperbarui.");
+  } catch (error) {
+    alert(error.message);
+  } finally {
+    $("saveStatusBtn").disabled = false;
+    $("saveStatusBtn").textContent = "Simpan Status";
+  }
+}
+
 async function exportPdf() {
   if (!selectedReg) return;
 
