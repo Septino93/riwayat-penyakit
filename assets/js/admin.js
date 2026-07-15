@@ -398,8 +398,9 @@ async function saveStatus() {
 async function exportPdf() {
   if (!selectedReg) return;
 
-  $("exportPdfBtn").disabled = true;
-  $("exportPdfBtn").textContent = "Membuat PDF...";
+  const button = $("exportPdfBtn");
+  button.disabled = true;
+  button.textContent = "Membuat PDF...";
 
   try {
     const data = await call("exportPdf", {
@@ -407,19 +408,43 @@ async function exportPdf() {
       registrationNumber: selectedReg
     });
 
+    if (!data.base64) {
+      throw new Error("Data PDF tidak diterima dari server.");
+    }
+
+    const binary = atob(data.base64);
+    const bytes = new Uint8Array(binary.length);
+
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+
+    const blob = new Blob([bytes], {
+      type: data.mimeType || "application/pdf"
+    });
+
+    const objectUrl = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    link.href = data.url;
-    link.download = "";
+
+    link.href = objectUrl;
+    link.download =
+      data.fileName ||
+      `Laporan_${selectedReg}.pdf`;
     link.style.display = "none";
 
     document.body.appendChild(link);
     link.click();
     link.remove();
+
+    setTimeout(() => {
+      URL.revokeObjectURL(objectUrl);
+    }, 2000);
+
   } catch (error) {
     alert(error.message);
   } finally {
-    $("exportPdfBtn").disabled = false;
-    $("exportPdfBtn").textContent = "Download PDF";
+    button.disabled = false;
+    button.textContent = "PDF";
   }
 }
 function openFolder() {
