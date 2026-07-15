@@ -256,6 +256,9 @@ async function apiPost(payload, timeoutMs = 240000) {
   try {
     const response = await fetch(getApiUrl(), {
       method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify(payload),
       signal: controller.signal
     });
@@ -282,11 +285,6 @@ async function apiPost(payload, timeoutMs = 240000) {
     if (error.name === 'AbortError') {
       throw new Error('Proses terlalu lama dan dihentikan.');
     }
-
-    if (/load failed|failed to fetch|networkerror/i.test(String(error.message || error))) {
-      throw new Error('Koneksi ke Google Apps Script gagal. Muat ulang halaman lalu coba kirim kembali.');
-    }
-
     throw error;
   } finally {
     clearTimeout(timeout);
@@ -302,10 +300,22 @@ const genderField=form.querySelector('[name="jenis_kelamin"]');
 const dobField=form.querySelector('[name="tanggal_lahir"]');
 genderField?.addEventListener('change',()=>{syncApplicability();update();});
 dobField?.addEventListener('change',()=>{syncApplicability();update();});
-const otherIncome=form.querySelector('input[name="q48"][value="Lainnya"]')||form.querySelector('input[name="q48"][value="Other"]');
+const incomeSourceField=form.querySelector('[name="q48"]');
+const otherIncomeWrap=document.getElementById('q48OtherWrap');
 const otherIncomeText=form.querySelector('[name="q48_other"]');
-function syncOtherIncome(){if(!otherIncomeText)return;const show=!!otherIncome?.checked;otherIncomeText.hidden=!show;otherIncomeText.required=show;if(!show)otherIncomeText.value='';}
-form.querySelectorAll('input[name="q48"]').forEach(x=>x.addEventListener('change',syncOtherIncome));
+
+function syncOtherIncome(){
+  if(!incomeSourceField||!otherIncomeWrap||!otherIncomeText)return;
+
+  const show=incomeSourceField.value==='Lainnya';
+  otherIncomeWrap.hidden=!show;
+  otherIncomeText.required=show;
+  otherIncomeText.disabled=!show;
+
+  if(!show)otherIncomeText.value='';
+}
+
+incomeSourceField.addEventListener('change',syncOtherIncome);
 const relationshipField=form.querySelector('[name="q46"]');
 const relationshipOtherWrap=document.getElementById('q46OtherWrap');
 const relationshipOther=form.querySelector('[name="q46_other"]');
