@@ -3,6 +3,8 @@
 
 <!DOCTYPE html>
 
+<!DOCTYPE html>
+
 <html lang="id">
 <head>
 <meta charset="utf-8"/>
@@ -32,8 +34,8 @@
 <div class="admin-brand-mark small-mark">FRP</div>
 <div>
 <p class="eyebrow">ADMIN DASHBOARD</p>
-<h1>Pengajuan Riwayat Penyakit</h1>
-<p class="admin-subtitle">Pantau data, dokumen, dan status pengajuan nasabah.</p>
+<h1>Form Riwayat Penyakit</h1>
+
 </div>
 </div>
 <div class="admin-actions"><button class="btn secondary" id="refreshBtn">Refresh</button><button class="btn danger-soft" id="logoutBtn">Keluar</button></div>
@@ -63,18 +65,18 @@
 <dialog class="detail-dialog admin-detail-dialog" id="detailDialog">
 <div class="dialog-head admin-dialog-head">
 <div>
-<p class="eyebrow">DETAIL PENGAJUAN</p>
+<p class="eyebrow">INFORMASI RIWAYAT PENYAKIT</p>
 <h2 id="detailTitle">Detail Nasabah</h2>
 <p class="detail-meta" id="detailMeta"></p>
 </div>
 <button aria-label="Tutup" class="icon-close" id="closeDialog">×</button>
 </div>
-<div class="dialog-actions admin-dialog-actions simple-detail-actions"><div class="detail-action-buttons"><button class="btn secondary" id="exportPdfBtn">Download PDF</button><button class="btn folder-btn" id="openFolderBtn">Buka Folder</button><button class="btn whatsapp-btn" id="whatsappBtn">WhatsApp</button><button class="btn delete-btn" id="deleteDataBtn">Hapus</button></div></div>
-<div class="detail-tabs">
+<div class="detail-navigation-bar"><div class="detail-tabs detail-tabs-inline">
 <button class="detail-tab active" data-tab="profile">Data Nasabah</button>
 <button class="detail-tab" data-tab="answers">Kuisioner</button>
 <button class="detail-tab" data-tab="documents">Dokumen</button>
-</div>
+</div><div class="detail-action-buttons detail-actions-inline"><button class="btn secondary" id="exportPdfBtn"><span class="action-icon">↓</span><span>PDF</span></button><button class="btn folder-btn" id="openFolderBtn"><span class="action-icon">▣</span><span>Folder</span></button><button class="btn whatsapp-btn" id="whatsappBtn"><span class="action-icon">◉</span><span>WA</span></button><button class="btn delete-btn" id="deleteDataBtn"><span class="action-icon">×</span><span>Hapus</span></button></div></div>
+
 <div class="detail-tab-panel active" id="tab-profile">
 <div class="detail-grid" id="profileContent"></div>
 </div>
