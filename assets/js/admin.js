@@ -57,6 +57,8 @@ $("logoutBtn").onclick = () => logout();
 $("closeDialog").onclick = () => $("detailDialog").close();
 $("saveStatusBtn").onclick = saveStatus;
 $("exportPdfBtn").onclick = exportPdf;
+$("openFolderBtn").onclick = openFolder;
+$("deleteDataBtn").onclick = deleteData;
 
 document.querySelectorAll(".detail-tab").forEach(button => {
   button.onclick = () => activateTab(button.dataset.tab);
@@ -236,7 +238,7 @@ async function openDetail(registrationNumber) {
 
     const name = selectedRow["Nama Tertanggung"] || "Nasabah";
     const status = selectedRow.Status || "Baru";
-    const documents = getDocuments(selectedRow);
+    const documents = getDocuments(selectedRow).filter(document => document.key !== "Folder Dokumen");
 
     $("detailTitle").textContent = name;
     $("detailMeta").textContent =
@@ -295,22 +297,48 @@ function renderAnswers(row) {
 }
 
 function renderDocuments(documents) {
-  $("documentContent").innerHTML = documents.length
-    ? documents.map(document => `
-        <article class="document-card">
-          <div class="document-icon">${documentIcon(document.url)}</div>
-          <div class="document-card-body">
-            <small>${esc(document.key)}</small>
-            <strong>${esc(documentName(document.url))}</strong>
-          </div>
+  const folderUrl = selectedRow?.["Folder Dokumen"] || "";
+
+  const folderCard = folderUrl
+    ? `
+      <article class="document-card folder-document-card">
+        <div class="document-icon folder-icon">DIR</div>
+        <div class="document-card-body">
+          <small>Folder Dokumen</small>
+          <strong>Seluruh dokumen pengajuan</strong>
+        </div>
+        <div class="document-card-actions">
+          <a class="btn folder-btn small" href="${escAttr(folderUrl)}" target="_blank" rel="noopener">
+            Buka Folder
+          </a>
+        </div>
+      </article>`
+    : "";
+
+  const fileCards = documents
+    .filter(document => document.key !== "Folder Dokumen")
+    .map(document => `
+      <article class="document-card">
+        <div class="document-icon">${documentIcon(document.url)}</div>
+        <div class="document-card-body">
+          <small>${esc(document.key)}</small>
+          <strong>${esc(cleanDocumentTitle(document.key))}</strong>
+        </div>
+        <div class="document-card-actions">
           <a class="btn secondary small" href="${escAttr(document.url)}" target="_blank" rel="noopener">
             Preview
           </a>
-        </article>
-      `).join("")
+          <a class="btn download-btn small" href="${escAttr(getDownloadUrl(document.url))}" target="_blank" rel="noopener">
+            Download
+          </a>
+        </div>
+      </article>
+    `).join("");
+
+  $("documentContent").innerHTML = folderCard || fileCards
+    ? folderCard + fileCards
     : emptyPanel("Tidak ada dokumen yang tersimpan.");
 }
-
 function getDocuments(row) {
   const documents = [];
 
@@ -410,6 +438,76 @@ async function exportPdf() {
     $("exportPdfBtn").disabled = false;
     $("exportPdfBtn").textContent = "Export PDF";
   }
+}
+
+function openFolder() {
+  const folderUrl = selectedRow?.["Folder Dokumen"] || "";
+
+  if (!folderUrl) {
+    alert("Folder Google Drive tidak ditemukan.");
+    return;
+  }
+
+  window.open(folderUrl, "_blank", "noopener");
+}
+
+async function deleteData() {
+  if (!selectedReg || !selectedRow) return;
+
+  const name = selectedRow["Nama Tertanggung"] || "Nasabah";
+  const confirmed = confirm(
+    `Hapus pengajuan ini?\n\nNama: ${name}\nRegistrasi: ${selectedReg}\n\nData di Google Sheets, folder dokumen, dan PDF akan dipindahkan ke Sampah. Tindakan ini tidak dapat dibatalkan dari dashboard.`
+  );
+
+  if (!confirmed) return;
+
+  $("deleteDataBtn").disabled = true;
+  $("deleteDataBtn").textContent = "Menghapus...";
+
+  try {
+    await call("deleteData", {
+      session,
+      registrationNumber: selectedReg
+    });
+
+    $("detailDialog").close();
+    selectedReg = "";
+    selectedRow = null;
+    await loadData();
+    alert("Pengajuan berhasil dihapus.");
+  } catch (error) {
+    alert(error.message);
+  } finally {
+    $("deleteDataBtn").disabled = false;
+    $("deleteDataBtn").textContent = "Hapus";
+  }
+}
+
+function cleanDocumentTitle(label) {
+  return String(label || "Dokumen")
+    .replace(/^\d+[a-z]?(?:\.\d+)?\.?\s*/i, "")
+    .replace(/\s*\([^)]*\)\s*/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function getDownloadUrl(url) {
+  const fileId = getDriveFileId(url);
+  return fileId
+    ? `https://drive.google.com/uc?export=download&id=${encodeURIComponent(fileId)}`
+    : url;
+}
+
+function getDriveFileId(url) {
+  const text = String(url || "");
+
+  const fileMatch = text.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (fileMatch) return fileMatch[1];
+
+  const idMatch = text.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (idMatch) return idMatch[1];
+
+  return "";
 }
 
 function logout(showMessage = true) {
