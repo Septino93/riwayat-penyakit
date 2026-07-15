@@ -1173,3 +1173,26 @@ body.admin-page{
     grid-template-columns:1fr;
   }
 }
+
+
+/* HEADER DASHBOARD TANPA BELUM DIBACA & REFRESH */
+.admin-page .admin-header .admin-actions{
+  display:flex;
+  justify-content:flex-end;
+  align-items:center;
+}
+
+.admin-page .admin-header .admin-actions #logoutBtn{
+  min-width:110px;
+}
+
+@media(max-width:760px){
+  .admin-page .admin-header .admin-actions{
+    display:flex;
+    width:100%;
+  }
+
+  .admin-page .admin-header .admin-actions #logoutBtn{
+    width:100%;
+  }
+}
