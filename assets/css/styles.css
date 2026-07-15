@@ -650,17 +650,153 @@ body.admin-page{
     padding:14px;
   }
 }
-.immunization-branch + .immunization-branch{margin-top:12px}
-.immunization-upload-label{
-  display:block;
-  margin-top:16px;
-  margin-bottom:6px;
-  font-weight:700;
-  color:#334155;
+
+
+/* =========================================================
+   ADMIN DETAIL ACTIONS & DOCUMENT CARDS — FINAL
+   ========================================================= */
+.admin-page .admin-dialog-actions{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:18px;
+  padding:16px 24px;
+  background:#f8fafc;
 }
-.conditional-help{
+
+.admin-page .detail-status-control{
+  width:230px;
+  flex:0 0 230px;
+}
+
+.admin-page .detail-status-control label{
   display:block;
-  margin-top:7px;
+  margin-bottom:7px;
   color:#667085;
-  font-weight:500;
+  font-size:12px;
+  font-weight:800;
+}
+
+.admin-page .detail-status-control select{
+  width:100%;
+  margin:0;
+}
+
+.admin-page .detail-action-buttons{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.admin-page .detail-action-buttons .btn{
+  min-height:44px;
+  margin:0;
+  padding:11px 17px;
+  white-space:nowrap;
+}
+
+.admin-page .folder-btn{
+  background:#eaf2ff;
+  color:#1d4ed8;
+}
+
+.admin-page .folder-btn:hover{
+  background:#dbeafe;
+}
+
+.admin-page .download-btn{
+  background:#ecfdf3;
+  color:#067647;
+}
+
+.admin-page .download-btn:hover{
+  background:#d1fadf;
+}
+
+.admin-page .delete-btn{
+  background:#fff1f0;
+  color:#b42318;
+}
+
+.admin-page .delete-btn:hover{
+  background:#fee4e2;
+}
+
+.admin-page .document-card{
+  align-items:center;
+  padding:15px;
+  border:1px solid #dfe5ee;
+  box-shadow:0 4px 14px rgba(16,24,40,.03);
+  transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease;
+}
+
+.admin-page .document-card:hover{
+  transform:translateY(-1px);
+  border-color:#c8d6eb;
+  box-shadow:0 9px 23px rgba(16,24,40,.07);
+}
+
+.admin-page .folder-document-card{
+  grid-column:1/-1;
+  background:#f7faff;
+  border-color:#cbdcff;
+}
+
+.admin-page .folder-icon{
+  background:#dbeafe;
+  color:#1d4ed8;
+}
+
+.admin-page .document-card-actions{
+  flex:0 0 auto;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.admin-page .document-card-actions .btn{
+  min-width:88px;
+}
+
+@media(max-width:760px){
+  .admin-page .admin-dialog-actions{
+    align-items:stretch;
+    flex-direction:column;
+  }
+
+  .admin-page .detail-status-control{
+    width:100%;
+    flex-basis:auto;
+  }
+
+  .admin-page .detail-action-buttons{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    width:100%;
+  }
+
+  .admin-page .detail-action-buttons .btn{
+    width:100%;
+  }
+
+  .admin-page .document-card{
+    align-items:stretch;
+    flex-direction:column;
+  }
+
+  .admin-page .document-card-actions{
+    width:100%;
+  }
+
+  .admin-page .document-card-actions .btn{
+    flex:1;
+  }
+}
+
+@media(max-width:460px){
+  .admin-page .detail-action-buttons{
+    grid-template-columns:1fr;
+  }
 }
