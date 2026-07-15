@@ -431,12 +431,19 @@ async function exportPdf() {
       registrationNumber: selectedReg
     });
 
-    window.open(data.url, "_blank", "noopener");
+    const link = document.createElement("a");
+    link.href = data.url;
+    link.download = "";
+    link.style.display = "none";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
   } catch (error) {
     alert(error.message);
   } finally {
     $("exportPdfBtn").disabled = false;
-    $("exportPdfBtn").textContent = "Export PDF";
+    $("exportPdfBtn").textContent = "Download PDF";
   }
 }
 
