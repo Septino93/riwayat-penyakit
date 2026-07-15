@@ -1,114 +1,513 @@
-const $=id=>document.getElementById(id);
-let rows=[],selectedReg='',session='';
-try{session=localStorage.getItem('frpAdminSession')||'';}catch{}
+const $ = id => document.getElementById(id);
 
-$('loginBtn').onclick=login;
-$('adminPassword').onkeydown=e=>{if(e.key==='Enter')login();};
-$('refreshBtn').onclick=loadData;
-$('searchInput').oninput=render;
-$('statusFilter').onchange=render;
-$('readFilter').onchange=render;
-$('logoutBtn').onclick=()=>logout();
-$('closeDialog').onclick=()=>$('detailDialog').close();
-$('saveStatusBtn').onclick=saveStatus;
-$('exportPdfBtn').onclick=exportPdf;
+let rows = [];
+let selectedReg = "";
+let selectedRow = null;
+let session = "";
 
-function apiUrl(){
-  const url=window.APP_CONFIG?.API_URL||'';
-  if(!url||url.includes('PASTE_'))throw new Error('API_URL belum diisi pada assets/js/config.js.');
+const PROFILE_KEYS = [
+  "Timestamp",
+  "Nomor Registrasi",
+  "Email",
+  "Nama Pemegang Polis",
+  "Nomor Handphone Pemegang Polis",
+  "Nama Tertanggung",
+  "Nomor Handphone Tertanggung",
+  "Jenis Kelamin Tertanggung",
+  "Tanggal Lahir Tertanggung",
+  "Nama Ibu Kandung Tertanggung",
+  "Tinggi Badan Tertanggung",
+  "Berat Badan Tertanggung",
+  "Nama Pembayar Premi",
+  "Hubungan Calon Tertanggung dengan Calon Pembayar Premi",
+  "Penghasilan Kotor Tahunan",
+  "Sumber Penghasilan",
+  "Nama Perusahaan (Tempat Kerja)",
+  "Jenis Usaha",
+  "Bidang Usaha",
+  "Jabatan",
+  "Uraian Pekerjaan (Bagian)",
+  "Status",
+  "Sudah Dibaca",
+  "Terakhir Dibaca"
+];
+
+const SYSTEM_KEYS = [
+  "Timestamp",
+  "Nomor Registrasi",
+  "Status",
+  "Sudah Dibaca",
+  "Terakhir Dibaca",
+  "Folder Dokumen"
+];
+
+try {
+  session = localStorage.getItem("frpAdminSession") || "";
+} catch {}
+
+$("loginBtn").onclick = login;
+$("adminPassword").onkeydown = event => {
+  if (event.key === "Enter") login();
+};
+$("refreshBtn").onclick = loadData;
+$("searchInput").oninput = render;
+$("statusFilter").onchange = render;
+$("readFilter").onchange = render;
+$("logoutBtn").onclick = () => logout();
+$("closeDialog").onclick = () => $("detailDialog").close();
+$("saveStatusBtn").onclick = saveStatus;
+$("exportPdfBtn").onclick = exportPdf;
+
+document.querySelectorAll(".detail-tab").forEach(button => {
+  button.onclick = () => activateTab(button.dataset.tab);
+});
+
+function apiUrl() {
+  const url = window.APP_CONFIG?.API_URL || "";
+  if (!url || url.includes("PASTE_")) {
+    throw new Error("API_URL belum diisi pada assets/js/config.js.");
+  }
   return url;
 }
-async function call(action,payload={}){
-  const response=await fetch(apiUrl(),{
-    method:'POST',
-    headers:{'Content-Type':'text/plain;charset=utf-8'},
-    body:JSON.stringify({action,...payload})
+
+async function call(action, payload = {}) {
+  const response = await fetch(apiUrl(), {
+    method: "POST",
+    headers: {"Content-Type": "text/plain;charset=utf-8"},
+    body: JSON.stringify({action, ...payload})
   });
-  const text=await response.text();
+
+  const text = await response.text();
   let data;
-  try{data=JSON.parse(text);}catch{throw new Error('Respons backend tidak valid: '+text.slice(0,120));}
-  if(!data.success)throw new Error(data.message||'Proses gagal.');
+
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new Error("Respons backend tidak valid.");
+  }
+
+  if (!data.success) {
+    throw new Error(data.message || "Proses gagal.");
+  }
+
   return data;
 }
-async function login(){
-  const username=$('adminUsername').value.trim(),password=$('adminPassword').value;
-  if(!username||!password)return showLoginError('Username dan password wajib diisi.');
-  $('loginBtn').disabled=true;$('loginBtn').textContent='Memeriksa...';$('loginError').hidden=true;
-  try{
-    const data=await call('login',{username,password});
-    session=data.session;
-    try{localStorage.setItem('frpAdminSession',session);}catch{}
-    $('adminPassword').value='';
+
+async function login() {
+  const username = $("adminUsername").value.trim();
+  const password = $("adminPassword").value;
+
+  if (!username || !password) {
+    return showLoginError("Username dan password wajib diisi.");
+  }
+
+  $("loginBtn").disabled = true;
+  $("loginBtn").textContent = "Memeriksa...";
+  $("loginError").hidden = true;
+
+  try {
+    const data = await call("login", {username, password});
+    session = data.session;
+
+    try {
+      localStorage.setItem("frpAdminSession", session);
+    } catch {}
+
+    $("adminPassword").value = "";
     await loadData();
-  }catch(e){showLoginError(e.message);}
-  finally{$('loginBtn').disabled=false;$('loginBtn').textContent='Masuk';}
-}
-async function loadData(){
-  try{
-    const data=await call('listData',{session});
-    rows=data.rows||[];
-    $('loginPanel').hidden=true;$('dashboardPanel').hidden=false;$('dashboardError').hidden=true;
-    updateStats();render();
-  }catch(e){
-    if(/sesi|login|token/i.test(e.message))logout(false);
-    else showDashboardError(e.message);
+  } catch (error) {
+    showLoginError(error.message);
+  } finally {
+    $("loginBtn").disabled = false;
+    $("loginBtn").textContent = "Masuk";
   }
 }
-function updateStats(){
-  const count=s=>rows.filter(r=>(r.Status||'Baru')===s).length;
-  $('totalStat').textContent=rows.length;$('newStat').textContent=count('Baru');
-  $('checkingStat').textContent=count('Sedang Dicek');$('missingStat').textContent=count('Dokumen Kurang');
-  $('completeStat').textContent=count('Sudah Lengkap');$('doneStat').textContent=count('Selesai');
+
+async function loadData() {
+  try {
+    const data = await call("listData", {session});
+    rows = data.rows || [];
+
+    $("loginPanel").hidden = true;
+    $("dashboardPanel").hidden = false;
+    $("dashboardError").hidden = true;
+
+    updateStats();
+    render();
+  } catch (error) {
+    if (/sesi|login|token/i.test(error.message)) {
+      logout(false);
+    } else {
+      showDashboardError(error.message);
+    }
+  }
 }
-function render(){
-  const q=$('searchInput').value.toLowerCase(),status=$('statusFilter').value,rf=$('readFilter').value;
-  const filtered=rows.filter(row=>{
-    const read=String(row['Sudah Dibaca']).toLowerCase()==='ya';
-    return (!q||Object.values(row).join(' ').toLowerCase().includes(q))&&
-      (!status||(row.Status||'Baru')===status)&&
-      (!rf||(rf==='read'?read:!read));
+
+function updateStats() {
+  const count = status => rows.filter(row => (row.Status || "Baru") === status).length;
+  const unread = rows.filter(row => !isRead(row)).length;
+
+  $("totalStat").textContent = rows.length;
+  $("newStat").textContent = count("Baru");
+  $("checkingStat").textContent = count("Sedang Dicek");
+  $("missingStat").textContent = count("Dokumen Kurang");
+  $("completeStat").textContent = count("Sudah Lengkap");
+  $("doneStat").textContent = count("Selesai");
+  $("unreadBadge").textContent = unread;
+}
+
+function render() {
+  const query = $("searchInput").value.trim().toLowerCase();
+  const status = $("statusFilter").value;
+  const readFilter = $("readFilter").value;
+
+  const filtered = rows.filter(row => {
+    const haystack = Object.values(row).join(" ").toLowerCase();
+    const read = isRead(row);
+
+    return (!query || haystack.includes(query)) &&
+      (!status || (row.Status || "Baru") === status) &&
+      (!readFilter || (readFilter === "read" ? read : !read));
   });
-  $('emptyState').hidden=filtered.length>0;
-  $('tableBody').innerHTML=filtered.map(row=>{
-    const reg=row['Nomor Registrasi']||'',read=String(row['Sudah Dibaca']).toLowerCase()==='ya';
-    return `<tr class="${read?'':'unread-row'}">
-      <td>${esc(reg)}</td><td>${esc(row.Timestamp||'')}</td>
-      <td>${esc(row['Nama Tertanggung']||'')}</td>
-      <td>${esc(row['Nomor Handphone Tertanggung']||'')}</td>
-      <td><span class="status-pill">${esc(row.Status||'Baru')}</span></td>
-      <td>${read?'Sudah dibaca':'<span class="new-badge">Baru</span>'}</td>
-      <td><button class="btn secondary small" data-reg="${escAttr(reg)}">Detail</button></td>
+
+  $("resultCount").textContent = filtered.length;
+  $("emptyState").hidden = filtered.length > 0;
+  $("tableBody").innerHTML = filtered.map(renderRow).join("");
+
+  document.querySelectorAll("[data-reg]").forEach(button => {
+    button.onclick = () => openDetail(button.dataset.reg);
+  });
+}
+
+function renderRow(row) {
+  const registration = row["Nomor Registrasi"] || "";
+  const name = row["Nama Tertanggung"] || "-";
+  const phone = row["Nomor Handphone Tertanggung"] || "-";
+  const email = row.Email || "-";
+  const read = isRead(row);
+  const status = row.Status || "Baru";
+
+  return `
+    <tr class="${read ? "" : "unread-row"}">
+      <td>
+        <strong class="registration-code">${esc(registration)}</strong>
+      </td>
+      <td>
+        <span class="table-date">${esc(row.Timestamp || "-")}</span>
+      </td>
+      <td>
+        <div class="person-cell">
+          <div class="person-avatar">${esc(getInitials(name))}</div>
+          <div>
+            <strong>${esc(name)}</strong>
+            <span>${esc(row["Jenis Kelamin Tertanggung"] || "-")}</span>
+          </div>
+        </div>
+      </td>
+      <td>
+        <div class="contact-cell">
+          <strong>${esc(phone)}</strong>
+          <span>${esc(email)}</span>
+        </div>
+      </td>
+      <td>
+        <span class="status-pill ${statusClass(status)}">${esc(status)}</span>
+      </td>
+      <td>
+        ${read
+          ? '<span class="read-label">Sudah dibaca</span>'
+          : '<span class="new-badge">Pengajuan baru</span>'}
+      </td>
+      <td>
+        <button class="btn secondary small" data-reg="${escAttr(registration)}">Lihat Detail</button>
+      </td>
     </tr>`;
-  }).join('');
-  document.querySelectorAll('[data-reg]').forEach(b=>b.onclick=()=>openDetail(b.dataset.reg));
 }
-async function openDetail(reg){
-  try{
-    const data=await call('getDetail',{session,registrationNumber:reg});
-    const row=data.row;selectedReg=reg;
-    $('detailTitle').textContent=`${row['Nama Tertanggung']||'Tertanggung'} — ${reg}`;
-    $('detailStatus').value=row.Status||'Baru';
-    $('detailContent').innerHTML=Object.entries(row).filter(([,v])=>String(v||'').trim())
-      .map(([k,v])=>`<div class="detail-item"><small>${esc(k)}</small><div>${renderValue(v)}</div></div>`).join('');
-    $('detailDialog').showModal();
-    const local=rows.find(r=>r['Nomor Registrasi']===reg);if(local)local['Sudah Dibaca']='Ya';render();
-  }catch(e){alert(e.message);}
+
+async function openDetail(registrationNumber) {
+  try {
+    const data = await call("getDetail", {
+      session,
+      registrationNumber
+    });
+
+    selectedReg = registrationNumber;
+    selectedRow = data.row;
+
+    const name = selectedRow["Nama Tertanggung"] || "Nasabah";
+    const status = selectedRow.Status || "Baru";
+    const documents = getDocuments(selectedRow);
+
+    $("detailTitle").textContent = name;
+    $("detailMeta").textContent =
+      `${registrationNumber} • ${selectedRow.Timestamp || "Tanggal tidak tersedia"}`;
+
+    $("detailStatus").value = status;
+    $("currentStatusText").textContent = status;
+    $("currentStatusText").className = `summary-status ${statusClass(status)}`;
+    $("documentCount").textContent = `${documents.length} file`;
+    $("lastReadText").textContent = selectedRow["Terakhir Dibaca"] || "Baru dibuka";
+
+    renderProfile(selectedRow);
+    renderAnswers(selectedRow);
+    renderDocuments(documents);
+    activateTab("profile");
+
+    $("detailDialog").showModal();
+
+    const localRow = rows.find(row => row["Nomor Registrasi"] === registrationNumber);
+    if (localRow) {
+      localRow["Sudah Dibaca"] = "Ya";
+      localRow["Terakhir Dibaca"] = selectedRow["Terakhir Dibaca"] || "Baru dibuka";
+    }
+
+    updateStats();
+    render();
+  } catch (error) {
+    alert(error.message);
+  }
 }
-async function saveStatus(){
-  $('saveStatusBtn').disabled=true;
-  try{await call('updateStatus',{session,registrationNumber:selectedReg,status:$('detailStatus').value});$('detailDialog').close();await loadData();}
-  catch(e){alert(e.message);}finally{$('saveStatusBtn').disabled=false;}
+
+function renderProfile(row) {
+  const entries = PROFILE_KEYS
+    .filter(key => String(row[key] || "").trim())
+    .map(key => [key, row[key]]);
+
+  $("profileContent").innerHTML = entries.length
+    ? entries.map(([key, value]) => detailItem(key, value)).join("")
+    : emptyPanel("Data nasabah belum tersedia.");
 }
-async function exportPdf(){
-  $('exportPdfBtn').disabled=true;
-  try{const data=await call('exportPdf',{session,registrationNumber:selectedReg});window.open(data.url,'_blank','noopener');}
-  catch(e){alert(e.message);}finally{$('exportPdfBtn').disabled=false;}
+
+function renderAnswers(row) {
+  const documents = new Set(getDocuments(row).map(item => item.key));
+
+  const entries = Object.entries(row).filter(([key, value]) => {
+    return String(value || "").trim() &&
+      !PROFILE_KEYS.includes(key) &&
+      !SYSTEM_KEYS.includes(key) &&
+      !documents.has(key) &&
+      !looksLikeDocument(key, value);
+  });
+
+  $("answerContent").innerHTML = entries.length
+    ? entries.map(([key, value]) => detailItem(key, value)).join("")
+    : emptyPanel("Jawaban kuisioner belum tersedia.");
 }
-function logout(show=true){session='';try{localStorage.removeItem('frpAdminSession');}catch{}rows=[];$('dashboardPanel').hidden=true;$('loginPanel').hidden=false;if(show)showLoginError('Anda sudah keluar.');}
-function renderValue(v){const s=String(v);if(s.includes('\n')&&s.split('\n').every(x=>/^https?:\/\//.test(x.trim())))return s.split('\n').map(x=>`<a href="${escAttr(x.trim())}" target="_blank" rel="noopener">Buka dokumen</a>`).join('<br>');return /^https?:\/\//.test(s)?`<a href="${escAttr(s)}" target="_blank" rel="noopener">Buka dokumen</a>`:esc(s);}
-function showLoginError(m){$('loginError').textContent=m;$('loginError').hidden=false;}
-function showDashboardError(m){$('dashboardError').textContent=m;$('dashboardError').hidden=false;}
-function esc(v){return String(v).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
-function escAttr(v){return esc(v);}
-if(session)loadData();
-setInterval(()=>{if(session)loadData();},30000);
+
+function renderDocuments(documents) {
+  $("documentContent").innerHTML = documents.length
+    ? documents.map(document => `
+        <article class="document-card">
+          <div class="document-icon">${documentIcon(document.url)}</div>
+          <div class="document-card-body">
+            <small>${esc(document.key)}</small>
+            <strong>${esc(documentName(document.url))}</strong>
+          </div>
+          <a class="btn secondary small" href="${escAttr(document.url)}" target="_blank" rel="noopener">
+            Preview
+          </a>
+        </article>
+      `).join("")
+    : emptyPanel("Tidak ada dokumen yang tersimpan.");
+}
+
+function getDocuments(row) {
+  const documents = [];
+
+  Object.entries(row).forEach(([key, value]) => {
+    const urls = extractUrls(value);
+
+    if (urls.length && looksLikeDocument(key, value)) {
+      urls.forEach(url => documents.push({key, url}));
+    }
+  });
+
+  return documents;
+}
+
+function looksLikeDocument(key, value) {
+  const label = String(key).toLowerCase();
+  const text = String(value || "");
+
+  return /foto|dokumen|ktp|kartu keluarga|buku bank|lampiran|folder/i.test(label) ||
+    /^https?:\/\/(drive\.google\.com|docs\.google\.com)/i.test(text.trim());
+}
+
+function extractUrls(value) {
+  return String(value || "")
+    .split(/\s+/)
+    .map(item => item.trim())
+    .filter(item => /^https?:\/\//i.test(item));
+}
+
+function detailItem(key, value) {
+  return `
+    <div class="detail-item">
+      <small>${esc(key)}</small>
+      <div>${renderValue(value)}</div>
+    </div>`;
+}
+
+function activateTab(tabName) {
+  document.querySelectorAll(".detail-tab").forEach(button => {
+    button.classList.toggle("active", button.dataset.tab === tabName);
+  });
+
+  document.querySelectorAll(".detail-tab-panel").forEach(panel => {
+    panel.classList.toggle("active", panel.id === `tab-${tabName}`);
+  });
+}
+
+async function saveStatus() {
+  if (!selectedReg) return;
+
+  $("saveStatusBtn").disabled = true;
+  $("saveStatusBtn").textContent = "Menyimpan...";
+
+  try {
+    const status = $("detailStatus").value;
+
+    await call("updateStatus", {
+      session,
+      registrationNumber: selectedReg,
+      status
+    });
+
+    const localRow = rows.find(row => row["Nomor Registrasi"] === selectedReg);
+    if (localRow) localRow.Status = status;
+    if (selectedRow) selectedRow.Status = status;
+
+    $("currentStatusText").textContent = status;
+    $("currentStatusText").className = `summary-status ${statusClass(status)}`;
+
+    updateStats();
+    render();
+    alert("Status berhasil diperbarui.");
+  } catch (error) {
+    alert(error.message);
+  } finally {
+    $("saveStatusBtn").disabled = false;
+    $("saveStatusBtn").textContent = "Simpan Status";
+  }
+}
+
+async function exportPdf() {
+  if (!selectedReg) return;
+
+  $("exportPdfBtn").disabled = true;
+  $("exportPdfBtn").textContent = "Membuat PDF...";
+
+  try {
+    const data = await call("exportPdf", {
+      session,
+      registrationNumber: selectedReg
+    });
+
+    window.open(data.url, "_blank", "noopener");
+  } catch (error) {
+    alert(error.message);
+  } finally {
+    $("exportPdfBtn").disabled = false;
+    $("exportPdfBtn").textContent = "Export PDF";
+  }
+}
+
+function logout(showMessage = true) {
+  session = "";
+  rows = [];
+  selectedReg = "";
+  selectedRow = null;
+
+  try {
+    localStorage.removeItem("frpAdminSession");
+  } catch {}
+
+  $("dashboardPanel").hidden = true;
+  $("loginPanel").hidden = false;
+
+  if (showMessage) {
+    showLoginError("Anda sudah keluar dari dashboard.");
+  }
+}
+
+function isRead(row) {
+  return String(row["Sudah Dibaca"] || "").toLowerCase() === "ya";
+}
+
+function statusClass(status) {
+  return {
+    "Baru": "status-blue",
+    "Sedang Dicek": "status-yellow",
+    "Dokumen Kurang": "status-red",
+    "Sudah Lengkap": "status-green",
+    "Selesai": "status-dark"
+  }[status] || "status-blue";
+}
+
+function getInitials(name) {
+  return String(name || "N")
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map(word => word[0])
+    .join("")
+    .toUpperCase();
+}
+
+function documentIcon(url) {
+  const lower = String(url).toLowerCase();
+  if (lower.includes(".pdf")) return "PDF";
+  return "IMG";
+}
+
+function documentName(url) {
+  try {
+    return decodeURIComponent(new URL(url).pathname.split("/").filter(Boolean).pop() || "Dokumen");
+  } catch {
+    return "Dokumen";
+  }
+}
+
+function emptyPanel(message) {
+  return `<div class="tab-empty">${esc(message)}</div>`;
+}
+
+function renderValue(value) {
+  const text = String(value);
+
+  if (/^https?:\/\//i.test(text.trim())) {
+    return `<a href="${escAttr(text.trim())}" target="_blank" rel="noopener">Buka tautan</a>`;
+  }
+
+  return esc(text);
+}
+
+function showLoginError(message) {
+  $("loginError").textContent = message;
+  $("loginError").hidden = false;
+}
+
+function showDashboardError(message) {
+  $("dashboardError").textContent = message;
+  $("dashboardError").hidden = false;
+}
+
+function esc(value) {
+  return String(value).replace(/[&<>'"]/g, character => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    "'": "&#39;",
+    '"': "&quot;"
+  }[character]));
+}
+
+function escAttr(value) {
+  return esc(value);
+}
+
+if (session) loadData();
+
+setInterval(() => {
+  if (session) loadData();
+}, 30000);
