@@ -1199,3 +1199,184 @@ body.admin-page{
     width:100%;
   }
 }
+
+
+/* =========================================================
+   FINISHING UI — FORM RIWAYAT PENYAKIT
+   ========================================================= */
+.admin-page .admin-heading h1{
+  letter-spacing:-.025em;
+}
+
+.admin-page .admin-dialog-head{
+  background:
+    linear-gradient(135deg,rgba(36,87,214,.055),rgba(255,255,255,0) 55%),
+    #fff;
+}
+
+.admin-page .admin-dialog-head .eyebrow{
+  color:#2457d6;
+}
+
+.admin-page .admin-dialog-head h2{
+  letter-spacing:-.02em;
+}
+
+.admin-page .detail-navigation-bar{
+  flex:0 0 auto;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  padding:11px 24px;
+  border-bottom:1px solid #dfe5ee;
+  background:#fff;
+}
+
+.admin-page .detail-tabs-inline{
+  flex:1 1 auto;
+  min-width:0;
+  display:flex;
+  gap:6px;
+  padding:0;
+  border:0;
+  background:transparent;
+  overflow-x:auto;
+}
+
+.admin-page .detail-tabs-inline .detail-tab{
+  min-height:42px;
+  padding:10px 15px;
+}
+
+.admin-page .detail-actions-inline{
+  flex:0 0 auto;
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:8px;
+}
+
+.admin-page .detail-actions-inline .btn{
+  min-width:auto;
+  min-height:40px;
+  padding:9px 13px;
+  border-radius:10px;
+  font-size:13px;
+  box-shadow:none;
+}
+
+.admin-page .detail-actions-inline .action-icon{
+  width:18px;
+  height:18px;
+  display:inline-grid;
+  place-items:center;
+  border-radius:6px;
+  font-size:14px;
+  font-weight:900;
+}
+
+.admin-page .detail-actions-inline #exportPdfBtn .action-icon{
+  background:#e8edf5;
+  color:#344054;
+}
+
+.admin-page .detail-actions-inline #openFolderBtn .action-icon{
+  background:#dbeafe;
+  color:#1d4ed8;
+}
+
+.admin-page .detail-actions-inline #whatsappBtn .action-icon{
+  background:#bbf7d0;
+  color:#15803d;
+}
+
+.admin-page .detail-actions-inline #deleteDataBtn .action-icon{
+  background:#fee4e2;
+  color:#b42318;
+}
+
+.admin-page .detail-actions-inline .btn:hover{
+  transform:translateY(-1px);
+}
+
+.admin-page .detail-item{
+  transition:border-color .16s ease,box-shadow .16s ease,transform .16s ease;
+}
+
+.admin-page .detail-item:hover{
+  transform:translateY(-1px);
+  border-color:#cbd5e1;
+  box-shadow:0 7px 18px rgba(16,24,40,.055);
+}
+
+.admin-page .admin-detail-dialog[open]{
+  animation:adminDialogIn .18s ease-out;
+}
+
+@keyframes adminDialogIn{
+  from{
+    opacity:0;
+    transform:translateY(8px) scale(.992);
+  }
+  to{
+    opacity:1;
+    transform:translateY(0) scale(1);
+  }
+}
+
+@media(max-width:900px){
+  .admin-page .detail-navigation-bar{
+    align-items:stretch;
+    flex-direction:column;
+    gap:10px;
+  }
+
+  .admin-page .detail-tabs-inline{
+    width:100%;
+  }
+
+  .admin-page .detail-actions-inline{
+    width:100%;
+    display:grid;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+  }
+
+  .admin-page .detail-actions-inline .btn{
+    width:100%;
+  }
+}
+
+@media(max-width:760px){
+  .admin-page .detail-navigation-bar{
+    position:static!important;
+    padding:12px 14px;
+  }
+
+  .admin-page .detail-tabs-inline{
+    position:static!important;
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    overflow:visible;
+  }
+
+  .admin-page .detail-tabs-inline .detail-tab{
+    width:100%;
+    padding:10px 7px;
+    font-size:12px;
+  }
+
+  .admin-page .detail-actions-inline{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+
+  .admin-page .detail-actions-inline .btn{
+    min-height:46px;
+  }
+}
+
+@media(max-width:390px){
+  .admin-page .detail-actions-inline{
+    grid-template-columns:1fr;
+  }
+}
