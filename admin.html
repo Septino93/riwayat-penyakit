@@ -3,38 +3,200 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Admin - Kuisioner Riwayat Penyakit</title>
+  <title>Admin Portal - Kuisioner Riwayat Penyakit</title>
   <link rel="stylesheet" href="assets/css/styles.css">
 </head>
-<body>
-<main class="admin-shell">
-  <section id="loginPanel" class="login-card">
-    <p class="eyebrow">ADMIN</p><h1>Login Admin</h1>
-    <p>Masuk untuk melihat data Kuisioner Riwayat Penyakit.</p>
-    <label>Username<input id="adminUsername" autocomplete="username"></label>
-    <label>Password<input id="adminPassword" type="password" autocomplete="current-password"></label>
-    <button id="loginBtn" class="btn primary full">Masuk</button>
-    <div id="loginError" class="error-box" hidden></div>
-  </section>
+<body class="admin-page">
+  <main class="admin-shell">
+    <section id="loginPanel" class="login-card admin-login-card">
+      <div class="admin-brand-mark">FRP</div>
+      <p class="eyebrow">ADMIN PORTAL</p>
+      <h1>Login Admin</h1>
+      <p class="muted">Kelola pengajuan Kuisioner Riwayat Penyakit.</p>
 
-  <section id="dashboardPanel" hidden>
-    <div class="admin-top">
-      <div><p class="eyebrow">ADMIN</p><h1>Data Riwayat Penyakit</h1></div>
-      <div class="admin-actions">
-        <button id="refreshBtn" class="btn secondary">Muat Ulang</button>
-        <button id="logoutBtn" class="btn secondary">Keluar</button>
+      <label>Username
+        <input id="adminUsername" autocomplete="username" placeholder="Masukkan username">
+      </label>
+
+      <label>Password
+        <input id="adminPassword" type="password" autocomplete="current-password" placeholder="Masukkan password">
+      </label>
+
+      <button id="loginBtn" class="btn primary full">Masuk</button>
+      <div id="loginError" class="error-box" hidden></div>
+    </section>
+
+    <section id="dashboardPanel" hidden>
+      <header class="admin-header">
+        <div class="admin-heading">
+          <div class="admin-brand-mark small-mark">FRP</div>
+          <div>
+            <p class="eyebrow">ADMIN DASHBOARD</p>
+            <h1>Pengajuan Riwayat Penyakit</h1>
+            <p class="admin-subtitle">Pantau data, dokumen, dan status pengajuan nasabah.</p>
+          </div>
+        </div>
+
+        <div class="admin-actions">
+          <div class="notification-chip" title="Pengajuan belum dibaca">
+            <span class="notification-dot"></span>
+            <span>Belum dibaca</span>
+            <strong id="unreadBadge">0</strong>
+          </div>
+          <button id="refreshBtn" class="btn secondary">Muat Ulang</button>
+          <button id="logoutBtn" class="btn danger-soft">Keluar</button>
+        </div>
+      </header>
+
+      <section class="stats-grid admin-stats-grid">
+        <article class="stat-card">
+          <span>Total Pengajuan</span>
+          <strong id="totalStat">0</strong>
+          <small>Seluruh data masuk</small>
+        </article>
+        <article class="stat-card status-new">
+          <span>Baru</span>
+          <strong id="newStat">0</strong>
+          <small>Belum diproses</small>
+        </article>
+        <article class="stat-card status-checking">
+          <span>Sedang Dicek</span>
+          <strong id="checkingStat">0</strong>
+          <small>Dalam pemeriksaan</small>
+        </article>
+        <article class="stat-card status-missing">
+          <span>Dokumen Kurang</span>
+          <strong id="missingStat">0</strong>
+          <small>Perlu dilengkapi</small>
+        </article>
+        <article class="stat-card status-complete">
+          <span>Sudah Lengkap</span>
+          <strong id="completeStat">0</strong>
+          <small>Siap diselesaikan</small>
+        </article>
+        <article class="stat-card status-done">
+          <span>Selesai</span>
+          <strong id="doneStat">0</strong>
+          <small>Proses selesai</small>
+        </article>
+      </section>
+
+      <section class="admin-workspace">
+        <div class="toolbar admin-toolbar">
+          <div class="search-box">
+            <span class="search-icon">⌕</span>
+            <input id="searchInput" placeholder="Cari nama, HP, email, atau nomor registrasi">
+          </div>
+
+          <select id="statusFilter">
+            <option value="">Semua Status</option>
+            <option>Baru</option>
+            <option>Sedang Dicek</option>
+            <option>Dokumen Kurang</option>
+            <option>Sudah Lengkap</option>
+            <option>Selesai</option>
+          </select>
+
+          <select id="readFilter">
+            <option value="">Semua Data</option>
+            <option value="unread">Belum Dibaca</option>
+            <option value="read">Sudah Dibaca</option>
+          </select>
+
+          <div class="result-counter">
+            <strong id="resultCount">0</strong>
+            <span>data</span>
+          </div>
+        </div>
+
+        <div class="table-wrap admin-table-wrap">
+          <table class="compact-table admin-table">
+            <thead>
+              <tr>
+                <th>Registrasi</th>
+                <th>Tanggal</th>
+                <th>Nasabah</th>
+                <th>Kontak</th>
+                <th>Status</th>
+                <th>Informasi</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+
+        <div id="emptyState" class="empty admin-empty" hidden>
+          <div class="empty-icon">⌕</div>
+          <strong>Data tidak ditemukan</strong>
+          <span>Coba ubah kata pencarian atau filter.</span>
+        </div>
+
+        <div id="dashboardError" class="error-box" hidden></div>
+      </section>
+    </section>
+  </main>
+
+  <dialog id="detailDialog" class="detail-dialog admin-detail-dialog">
+    <div class="dialog-head admin-dialog-head">
+      <div>
+        <p class="eyebrow">DETAIL PENGAJUAN</p>
+        <h2 id="detailTitle">Detail Nasabah</h2>
+        <p id="detailMeta" class="detail-meta"></p>
+      </div>
+      <button id="closeDialog" class="icon-close" aria-label="Tutup">×</button>
+    </div>
+
+    <div class="detail-summary">
+      <div class="detail-summary-item">
+        <span>Status Saat Ini</span>
+        <strong id="currentStatusText">Baru</strong>
+      </div>
+      <div class="detail-summary-item">
+        <span>Dokumen</span>
+        <strong id="documentCount">0 file</strong>
+      </div>
+      <div class="detail-summary-item">
+        <span>Terakhir Dibaca</span>
+        <strong id="lastReadText">-</strong>
       </div>
     </div>
 
-    <div class="stats-grid">
-      <article><span>Total Data</span><strong id="totalStat">0</strong></article>
-      <article><span>Baru</span><strong id="newStat">0</strong></article>
-      <article><span>Sedang Dicek</span><strong id="checkingStat">0</strong></article>
-      <article><span>Dokumen Kurang</span><strong id="missingStat">0</strong></article>
-      <article><span>Sudah Lengkap</span><strong id="completeStat">0</strong></article>
-      <article><span>Selesai</span><strong id="doneStat">0</strong></article>
+    <div class="dialog-actions admin-dialog-actions">
+      <select id="detailStatus">
+        <option>Baru</option>
+        <option>Sedang Dicek</option>
+        <option>Dokumen Kurang</option>
+        <option>Sudah Lengkap</option>
+        <option>Selesai</option>
+      </select>
+      <button id="saveStatusBtn" class="btn primary">Simpan Status</button>
+      <button id="exportPdfBtn" class="btn secondary">Export PDF</button>
     </div>
 
+    <div class="detail-tabs">
+      <button class="detail-tab active" data-tab="profile">Data Nasabah</button>
+      <button class="detail-tab" data-tab="answers">Jawaban Kuisioner</button>
+      <button class="detail-tab" data-tab="documents">Dokumen</button>
+    </div>
+
+    <div class="detail-tab-panel active" id="tab-profile">
+      <div id="profileContent" class="detail-grid"></div>
+    </div>
+
+    <div class="detail-tab-panel" id="tab-answers">
+      <div id="answerContent" class="detail-grid"></div>
+    </div>
+
+    <div class="detail-tab-panel" id="tab-documents">
+      <div id="documentContent" class="document-grid"></div>
+    </div>
+  </dialog>
+
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/admin.js"></script>
+</body>
+</html>
     <div class="toolbar">
       <input id="searchInput" placeholder="Cari nama, HP, email, atau nomor registrasi">
       <select id="statusFilter">
