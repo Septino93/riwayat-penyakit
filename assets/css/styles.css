@@ -1175,24 +1175,27 @@ body.admin-page{
 }
 
 
-/* HEADER DASHBOARD TANPA BELUM DIBACA & REFRESH */
+/* HEADER: REFRESH AKTIF, BELUM DIBACA DIHAPUS */
 .admin-page .admin-header .admin-actions{
   display:flex;
   justify-content:flex-end;
   align-items:center;
+  gap:10px;
 }
 
-.admin-page .admin-header .admin-actions #logoutBtn{
-  min-width:110px;
+.admin-page #refreshBtn:disabled{
+  opacity:.65;
+  cursor:wait;
 }
 
 @media(max-width:760px){
   .admin-page .admin-header .admin-actions{
-    display:flex;
+    display:grid;
+    grid-template-columns:1fr 1fr;
     width:100%;
   }
 
-  .admin-page .admin-header .admin-actions #logoutBtn{
+  .admin-page .admin-header .admin-actions .btn{
     width:100%;
   }
 }
