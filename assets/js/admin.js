@@ -33,9 +33,7 @@ const PROFILE_KEYS = [
   "Bidang Usaha",
   "Jabatan",
   "Uraian Pekerjaan (Bagian)",
-  "Status",
-  "Sudah Dibaca",
-  "Terakhir Dibaca"
+  "Status"
 ];
 
 const SYSTEM_KEYS = [
@@ -186,10 +184,9 @@ function renderRow(row) {
   const name = row["Nama Tertanggung"] || "-";
   const phone = row["Nomor Handphone Tertanggung"] || "-";
   const email = row.Email || "-";
-  const read = isRead(row);
 
   return `
-    <tr class="${read ? "" : "unread-row"}">
+    <tr>
       <td>
         <strong class="registration-code">${esc(registration)}</strong>
       </td>
@@ -244,12 +241,6 @@ async function openDetail(registrationNumber) {
     const detailDialog = $("detailDialog");
     if (detailDialog.open) detailDialog.close();
     detailDialog.showModal();
-
-    const localRow = rows.find(row => row["Nomor Registrasi"] === registrationNumber);
-    if (localRow) {
-      localRow["Sudah Dibaca"] = "Ya";
-      localRow["Terakhir Dibaca"] = selectedRow["Terakhir Dibaca"] || "Baru dibuka";
-    }
 
     updateStats();
     render();
@@ -552,9 +543,6 @@ function logout(showMessage = true) {
   }
 }
 
-function isRead(row) {
-  return String(row["Sudah Dibaca"] || "").toLowerCase() === "ya";
-}
 
 function statusClass(status) {
   return {
