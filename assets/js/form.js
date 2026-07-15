@@ -257,7 +257,7 @@ async function apiPost(payload, timeoutMs = 240000) {
     const response = await fetch(getApiUrl(), {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'text/plain;charset=utf-8'
       },
       body: JSON.stringify(payload),
       signal: controller.signal
