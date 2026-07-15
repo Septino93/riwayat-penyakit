@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Pengajuan Berhasil</title>
+  <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+  <main class="page-shell">
+    <section class="form-card success-card">
+      <div class="success-icon">✓</div>
+      <p class="eyebrow">PENGAJUAN BERHASIL</p>
+      <h1>Data berhasil dikirim</h1>
+      <p>Terima kasih. Data dan dokumen Anda sudah diterima.</p>
+      <div class="registration">
+        <small>Nomor Registrasi</small>
+        <strong id="registrationNumber">-</strong>
+      </div>
+      <a class="btn primary full" href="./">Kembali ke Form</a>
+    </section>
+  </main>
+  <script>
+    const reg = new URLSearchParams(location.search).get('reg') || '-';
+    document.getElementById('registrationNumber').textContent = reg;
+  </script>
+</body>
+</html>

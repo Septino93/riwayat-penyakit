@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Admin - Kuisioner Riwayat Penyakit</title>
+  <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+<main class="admin-shell">
+  <section id="loginPanel" class="login-card">
+    <p class="eyebrow">ADMIN</p><h1>Login Admin</h1>
+    <p>Masuk untuk melihat data Kuisioner Riwayat Penyakit.</p>
+    <label>Username<input id="adminUsername" autocomplete="username"></label>
+    <label>Password<input id="adminPassword" type="password" autocomplete="current-password"></label>
+    <button id="loginBtn" class="btn primary full">Masuk</button>
+    <div id="loginError" class="error-box" hidden></div>
+  </section>
+
+  <section id="dashboardPanel" hidden>
+    <div class="admin-top">
+      <div><p class="eyebrow">ADMIN</p><h1>Data Riwayat Penyakit</h1></div>
+      <div class="admin-actions">
+        <button id="refreshBtn" class="btn secondary">Muat Ulang</button>
+        <button id="logoutBtn" class="btn secondary">Keluar</button>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <article><span>Total Data</span><strong id="totalStat">0</strong></article>
+      <article><span>Baru</span><strong id="newStat">0</strong></article>
+      <article><span>Sedang Dicek</span><strong id="checkingStat">0</strong></article>
+      <article><span>Dokumen Kurang</span><strong id="missingStat">0</strong></article>
+      <article><span>Sudah Lengkap</span><strong id="completeStat">0</strong></article>
+      <article><span>Selesai</span><strong id="doneStat">0</strong></article>
+    </div>
+
+    <div class="toolbar">
+      <input id="searchInput" placeholder="Cari nama, HP, email, atau nomor registrasi">
+      <select id="statusFilter">
+        <option value="">Semua Status</option>
+        <option>Baru</option><option>Sedang Dicek</option><option>Dokumen Kurang</option>
+        <option>Sudah Lengkap</option><option>Selesai</option>
+      </select>
+      <select id="readFilter">
+        <option value="">Semua Data</option>
+        <option value="unread">Belum Dibaca</option>
+        <option value="read">Sudah Dibaca</option>
+      </select>
+    </div>
+
+    <div class="table-wrap">
+      <table class="compact-table">
+        <thead><tr><th>Registrasi</th><th>Tanggal</th><th>Nama Tertanggung</th><th>No. HP</th><th>Status</th><th>Info</th><th>Aksi</th></tr></thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+    <div id="emptyState" class="empty" hidden>Belum ada data.</div>
+    <div id="dashboardError" class="error-box" hidden></div>
+  </section>
+</main>
+
+<dialog id="detailDialog" class="detail-dialog">
+  <div class="dialog-head">
+    <div><p class="eyebrow">DETAIL DATA</p><h2 id="detailTitle">Detail</h2></div>
+    <button id="closeDialog" class="icon-close" aria-label="Tutup">×</button>
+  </div>
+  <div class="dialog-actions">
+    <select id="detailStatus">
+      <option>Baru</option><option>Sedang Dicek</option><option>Dokumen Kurang</option>
+      <option>Sudah Lengkap</option><option>Selesai</option>
+    </select>
+    <button id="saveStatusBtn" class="btn primary">Simpan Status</button>
+    <button id="exportPdfBtn" class="btn secondary">Export PDF</button>
+  </div>
+  <div id="detailContent" class="detail-grid"></div>
+</dialog>
+
+<script src="assets/js/config.js"></script>
+<script src="assets/js/admin.js"></script>
+</body></html>
