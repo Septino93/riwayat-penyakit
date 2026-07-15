@@ -149,10 +149,6 @@ async function loadData() {
     const data = await call("listData", {session});
     rows = data.rows || [];
 
-    const detailDialog = $("detailDialog");
-    if (detailDialog?.open) detailDialog.close();
-    detailDialog?.removeAttribute("open");
-
     $("loginPanel").hidden = true;
     $("dashboardPanel").hidden = false;
     $("dashboardError").hidden = true;
@@ -634,6 +630,3 @@ function escAttr(value) {
 
 if (session) loadData();
 
-setInterval(() => {
-  if (session) loadData();
-}, 30000);
