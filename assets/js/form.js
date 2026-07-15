@@ -8,6 +8,35 @@ function syncConditionalDetail(name){
   const wrap=form.querySelector(`[data-detail-for="${name}"]`);
   if(!wrap)return;
 
+  if(name==='q44'){
+    const selectedValue=selected?.value||'';
+    wrap.hidden=!selectedValue;
+
+    wrap.querySelectorAll('[data-show-when]').forEach(branch=>{
+      const shouldShow=branch.dataset.showWhen===selectedValue;
+      branch.hidden=!shouldShow;
+
+      branch.querySelectorAll('textarea,input,select').forEach(field=>{
+        field.disabled=!shouldShow;
+        field.required=shouldShow;
+
+        if(!shouldShow){
+          if(field.type==='file'){
+            field.value='';
+          }else{
+            field.value='';
+          }
+        }
+      });
+    });
+
+    const status=form.querySelector('[data-file-status="q44_file"]');
+    if(selectedValue!=='YA' && status){
+      status.textContent='Belum ada file dipilih';
+    }
+    return;
+  }
+
   const show=selected?.value==='YA';
   wrap.hidden=!show;
 
@@ -20,13 +49,6 @@ function syncConditionalDetail(name){
       else field.value='';
     }
   });
-
-  if(name==='q44'){
-    const fileInput=wrap.querySelector('input[type=file]');
-    const status=form.querySelector('[data-file-status="q44_file"]');
-    if(!show && status)status.textContent='Belum ada file dipilih';
-    if(fileInput)fileInput.required=show && !fileInput.disabled;
-  }
 }
 function initConditionalQuestions(){
   form.querySelectorAll('[data-detail-for]').forEach(wrap=>{
