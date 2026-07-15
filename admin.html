@@ -163,20 +163,28 @@
     </div>
 
     <div class="dialog-actions admin-dialog-actions">
-      <select id="detailStatus">
-        <option>Baru</option>
-        <option>Sedang Dicek</option>
-        <option>Dokumen Kurang</option>
-        <option>Sudah Lengkap</option>
-        <option>Selesai</option>
-      </select>
-      <button id="saveStatusBtn" class="btn primary">Simpan Status</button>
-      <button id="exportPdfBtn" class="btn secondary">Export PDF</button>
+      <div class="detail-status-control">
+        <label for="detailStatus">Status Pengajuan</label>
+        <select id="detailStatus">
+          <option>Baru</option>
+          <option>Sedang Dicek</option>
+          <option>Dokumen Kurang</option>
+          <option>Sudah Lengkap</option>
+          <option>Selesai</option>
+        </select>
+      </div>
+
+      <div class="detail-action-buttons">
+        <button id="saveStatusBtn" class="btn primary">Simpan Status</button>
+        <button id="exportPdfBtn" class="btn secondary">Export PDF</button>
+        <button id="openFolderBtn" class="btn folder-btn">Buka Folder</button>
+        <button id="deleteDataBtn" class="btn delete-btn">Hapus</button>
+      </div>
     </div>
 
     <div class="detail-tabs">
       <button class="detail-tab active" data-tab="profile">Data Nasabah</button>
-      <button class="detail-tab" data-tab="answers">Jawaban Kuisioner</button>
+      <button class="detail-tab" data-tab="answers">Kuisioner</button>
       <button class="detail-tab" data-tab="documents">Dokumen</button>
     </div>
 
