@@ -25,15 +25,46 @@ dialog .dialog-actions select{width:auto;margin:0}
 [hidden]{display:none!important;}
 .actions [hidden]{display:none!important;}
 
+/* Pertanyaan 12e - cabang Ya/Tidak imunisasi */
+.immunization-conditional{margin-top:14px}
+.immunization-branch[hidden]{display:none!important}
+.immunization-branch{
+  padding:14px;
+  border:1px solid #dbe5f1;
+  border-radius:12px;
+  background:#fff;
+}
+.immunization-branch + .immunization-branch{margin-top:12px}
+.immunization-upload-label{
+  display:block;
+  margin-top:16px;
+  margin-bottom:6px;
+  font-weight:700;
+  color:#334155;
+}
+.conditional-help{
+  display:block;
+  margin-top:7px;
+  color:#667085;
+  font-weight:500;
+}
 
-/* =========================================================
-   ADMIN DASHBOARD — CLEAN LAYOUT
-   ========================================================= */
-[hidden]{display:none!important}
 
-body.admin-page{
-  min-height:100vh;
-  background:#f3f6fb;
+/* Pertanyaan 14 & 16 */
+#q46OtherWrap,
+#q48OtherWrap{
+  margin-top:12px;
+}
+
+#q46OtherWrap[hidden],
+#q48OtherWrap[hidden]{
+  display:none!important;
+}
+
+#q46OtherWrap input,
+#q48OtherWrap input{
+  width:100%;
+}
   overflow-x:hidden;
 }
 
