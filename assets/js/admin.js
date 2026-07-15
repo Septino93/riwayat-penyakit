@@ -435,10 +435,10 @@ async function exportPdf() {
     link.href = data.url;
     link.download = "";
     link.style.display = "none";
+
     document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
-
+    link.remove();
   } catch (error) {
     alert(error.message);
   } finally {
@@ -446,7 +446,6 @@ async function exportPdf() {
     $("exportPdfBtn").textContent = "Download PDF";
   }
 }
-
 function openFolder() {
   const folderUrl = selectedRow?.["Folder Dokumen"] || "";
 
