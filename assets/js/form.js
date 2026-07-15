@@ -7,24 +7,26 @@ function syncConditionalDetail(name){
   const selected=form.querySelector(`input[name="${name}"]:checked`);
   const wrap=form.querySelector(`[data-detail-for="${name}"]`);
   if(!wrap)return;
-  const detail=wrap.querySelector('textarea');
-  const showForBoth=wrap.dataset.detailBoth==='true';
-  const show=showForBoth ? !!selected : selected?.value==='YA';
+
+  const show=selected?.value==='YA';
   wrap.hidden=!show;
-  detail.required=show && !detail.disabled;
 
-  if(name==='q44' && selected){
-    const label=wrap.querySelector('label');
-    if(selected.value==='YA'){
-      label.textContent='Mohon jelaskan imunisasi apa yang sudah didapatkan';
-      detail.placeholder='Tuliskan jenis imunisasi yang sudah didapatkan';
-    }else{
-      label.textContent='Mohon jelaskan mengapa tidak mendapat imunisasi';
-      detail.placeholder='Tuliskan alasan tidak mendapat imunisasi';
+  const fields=[...wrap.querySelectorAll('textarea,input,select')];
+  fields.forEach(field=>{
+    field.disabled=!show;
+    field.required=show;
+    if(!show){
+      if(field.type==='file')field.value='';
+      else field.value='';
     }
-  }
+  });
 
-  if(!show)detail.value='';
+  if(name==='q44'){
+    const fileInput=wrap.querySelector('input[type=file]');
+    const status=form.querySelector('[data-file-status="q44_file"]');
+    if(!show && status)status.textContent='Belum ada file dipilih';
+    if(fileInput)fileInput.required=show && !fileInput.disabled;
+  }
 }
 function initConditionalQuestions(){
   form.querySelectorAll('[data-detail-for]').forEach(wrap=>{
@@ -109,8 +111,36 @@ function update(){
 function validateStep(){const step=steps[current];for(const group of step.querySelectorAll('[data-required-group]')){if(!group.querySelector('input:checked')){showError('Pilih minimal satu jawaban pada Sumber Penghasilan.');group.scrollIntoView({behavior:'smooth',block:'center'});return false;}}for(const field of step.querySelectorAll('input,select,textarea')){if(!field.checkValidity()){field.reportValidity();return false;}if(field.type==='file'&&field.files[0]&&field.files[0].size>FILE_LIMIT){showError(`File ${field.files[0].name} melebihi batas ukuran.`);return false;}}return true;}
 nextBtn.addEventListener('click',()=>{if(validateStep())moveStep(1);});prevBtn.addEventListener('click',()=>moveStep(-1));
 form.querySelectorAll('input[type=file]').forEach(input=>input.addEventListener('change',()=>{const status=form.querySelector(`[data-file-status="${input.name}"]`);status.textContent=input.files[0]?`${input.files[0].name} (${formatBytes(input.files[0].size)})`:'Belum ada file dipilih';}));
-function collectTextData(){const data={};for(const el of form.querySelectorAll('input:not([type=file]),select,textarea')){const label=el.dataset.label;if(!label)continue;if((el.type==='checkbox'||el.type==='radio')&&!el.checked)continue;const value=(el.value||'').trim();if(!value)continue;if(data[label])data[label]+=', '+value;else data[label]=value;}return data;}
-function buildReview(){const box=document.getElementById('reviewContent');const data=collectTextData();const files=[...form.querySelectorAll('input[type=file]')].map(i=>({label:i.dataset.label,value:i.files[0]?.name||'Tidak diunggah'}));box.innerHTML=[...Object.entries(data).map(([k,v])=>reviewItem(k,v)),...files.map(x=>reviewItem(x.label,x.value))].join('');}
+function getFieldLabel(field){
+  const baseLabel=(field.dataset.label||'').trim();
+  if(!baseLabel)return '';
+
+  const question=field.closest('.question');
+  const number=(question?.querySelector('.question-number')?.textContent||'').trim();
+
+  if(!number || field.closest('.identity-question'))return baseLabel;
+  if(baseLabel.indexOf(number)===0)return baseLabel;
+
+  return `${number} ${baseLabel}`;
+}
+function collectTextData(){
+  const data={};
+
+  for(const el of form.querySelectorAll('input:not([type=file]),select,textarea')){
+    const label=getFieldLabel(el);
+    if(!label)continue;
+    if((el.type==='checkbox'||el.type==='radio')&&!el.checked)continue;
+
+    const value=(el.value||'').trim();
+    if(!value)continue;
+
+    if(data[label])data[label]+=', '+value;
+    else data[label]=value;
+  }
+
+  return data;
+}
+function buildReview(){const box=document.getElementById('reviewContent');const data=collectTextData();const files=[...form.querySelectorAll('input[type=file]')].map(i=>({label:getFieldLabel(i),value:i.files[0]?.name||'Tidak diunggah'}));box.innerHTML=[...Object.entries(data).map(([k,v])=>reviewItem(k,v)),...files.map(x=>reviewItem(x.label,x.value))].join('');}
 function reviewItem(k,v){return `<div class="review-item"><small>${escapeHtml(k)}</small><strong>${escapeHtml(v)}</strong></div>`;}
 form.addEventListener('submit',async e=>{
   e.preventDefault();
@@ -132,7 +162,7 @@ form.addEventListener('submit',async e=>{
       submitBtn.textContent=`Memproses foto ${i+1} dari ${fileInputs.length}...`;
       const compressed=await compressImage(input.files[0]);
       files.push({
-        fieldLabel:input.dataset.label,
+        fieldLabel:getFieldLabel(input),
         fileName:compressed.name,
         mimeType:compressed.type,
         base64:compressed.base64
@@ -205,7 +235,7 @@ async function apiPost(payload, timeoutMs = 240000) {
     const response = await fetch(getApiUrl(), {
       method: 'POST',
       headers: {
-        'Content-Type': 'text/plain;charset=utf-8'
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify(payload),
       signal: controller.signal
@@ -239,7 +269,7 @@ async function apiPost(payload, timeoutMs = 240000) {
   }
 }
 
-function showError(msg){errorBox.textContent=msg;errorBox.hidden=false;errorBox.scrollIntoView({behavior:'smooth',block:'center'});}function getApiUrl(){const u=window.APP_CONFIG?.API_URL;if(!u||u.includes('PASTE_URL')){showError('API belum dikonfigurasi pada assets/js/config.js.');return '';}return u;}
+function showError(msg){errorBox.textContent=msg;errorBox.hidden=false;errorBox.scrollIntoView({behavior:'smooth',block:'center'});}function getApiUrl(){const u=window.APP_CONFIG?.API_URL;if(!u||u.includes('PASTE_URL')){showError('API belum dikonfigurasi pada assets/config.js.');return '';}return u;}
 function formatBytes(n){return n<1024?`${n} B`:n<1048576?`${(n/1024).toFixed(1)} KB`:`${(n/1048576).toFixed(1)} MB`;}
 function escapeHtml(v){return String(v).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
 form.addEventListener('input',()=>{const obj={};for(const el of form.querySelectorAll('input:not([type=file]),select,textarea')){if(!el.name)continue;if((el.type==='checkbox'||el.type==='radio')&&!el.checked)continue;if(obj[el.name])obj[el.name]+='|||'+el.value;else obj[el.name]=el.value;}localStorage.setItem('healthFormDraft',JSON.stringify(obj));});
