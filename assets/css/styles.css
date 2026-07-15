@@ -1133,58 +1133,43 @@ body.admin-page{
   }
 }
 
+/* SIMPLE DASHBOARD — FINAL FIX */
+.admin-page .admin-stats-grid,
+.admin-page .detail-summary,
+.admin-page #statusFilter,
+.admin-page #readFilter,
+.admin-page .result-counter,
+.admin-page #detailStatus,
+.admin-page #saveStatusBtn,
+.admin-page .detail-status-control{
+  display:none!important;
+}
 
-/* =========================================================
-   SIMPLE ADMIN DASHBOARD FINAL
-   ========================================================= */
 .admin-page .simple-toolbar{
-  display:block;
-  margin-bottom:14px;
+  display:block!important;
+  grid-template-columns:1fr!important;
 }
 
 .admin-page .simple-toolbar .search-box{
-  width:100%;
+  width:100%!important;
+  max-width:none!important;
 }
 
 .admin-page .simple-detail-actions{
-  justify-content:flex-end;
+  justify-content:flex-end!important;
 }
 
 .admin-page .simple-detail-actions .detail-action-buttons{
   width:100%;
+  display:flex;
   justify-content:flex-end;
-}
-
-.admin-page .simple-detail-actions .btn{
-  min-width:130px;
+  gap:10px;
+  flex-wrap:wrap;
 }
 
 @media(max-width:760px){
-  .admin-page .admin-header{
-    gap:14px;
-  }
-
-  .admin-page .admin-actions{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    width:100%;
-  }
-
-  .admin-page .admin-actions .btn{
-    width:100%;
-  }
-
-  .admin-page .simple-detail-actions{
-    padding:16px;
-  }
-
   .admin-page .simple-detail-actions .detail-action-buttons{
     display:grid;
     grid-template-columns:1fr;
-  }
-
-  .admin-page .simple-detail-actions .btn{
-    width:100%;
-    min-height:52px;
   }
 }
