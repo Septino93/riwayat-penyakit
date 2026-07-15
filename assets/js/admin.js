@@ -55,7 +55,6 @@ $("loginBtn").onclick = login;
 $("adminPassword").onkeydown = event => {
   if (event.key === "Enter") login();
 };
-$("refreshBtn").onclick = loadData;
 $("searchInput").oninput = render;
 $("logoutBtn").onclick = () => logout();
 $("closeDialog").onclick = () => $("detailDialog").close();
