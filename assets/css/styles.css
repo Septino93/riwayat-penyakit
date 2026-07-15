@@ -20,3 +20,11 @@ input,select,textarea{width:100%;margin-top:9px;border:1px solid var(--line);bor
 .small{padding:8px 12px}
 dialog .dialog-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:16px 24px;background:#f8fafc}
 dialog .dialog-actions select{width:auto;margin:0}
+
+[hidden] {
+  display: none !important;
+}
+
+.actions [hidden] {
+  display: none !important;
+}
