@@ -55,6 +55,7 @@ $("loginBtn").onclick = login;
 $("adminPassword").onkeydown = event => {
   if (event.key === "Enter") login();
 };
+$("refreshBtn").onclick = refreshDashboard;
 $("searchInput").oninput = render;
 $("logoutBtn").onclick = () => logout();
 $("closeDialog").onclick = () => $("detailDialog").close();
@@ -125,6 +126,21 @@ async function login() {
   } finally {
     $("loginBtn").disabled = false;
     $("loginBtn").textContent = "Masuk";
+  }
+}
+
+async function refreshDashboard() {
+  const button = $("refreshBtn");
+  if (!button) return;
+
+  button.disabled = true;
+  button.textContent = "Memuat...";
+
+  try {
+    await loadData();
+  } finally {
+    button.disabled = false;
+    button.textContent = "Refresh";
   }
 }
 
