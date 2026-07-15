@@ -1,596 +1,39 @@
-const $ = id => document.getElementById(id);
-
-window.addEventListener("DOMContentLoaded", () => {
-  const dialog = $("detailDialog");
-  if (dialog?.open) dialog.close();
-  dialog?.removeAttribute("open");
-});
-
-let rows = [];
-let selectedReg = "";
-let selectedRow = null;
-let session = "";
-
-const PROFILE_KEYS = [
-  "Timestamp",
-  "Nomor Registrasi",
-  "Email",
-  "Nama Pemegang Polis",
-  "Nomor Handphone Pemegang Polis",
-  "Nama Tertanggung",
-  "Nomor Handphone Tertanggung",
-  "Jenis Kelamin Tertanggung",
-  "Tanggal Lahir Tertanggung",
-  "Nama Ibu Kandung Tertanggung",
-  "Tinggi Badan Tertanggung",
-  "Berat Badan Tertanggung",
-  "Nama Pembayar Premi",
-  "Hubungan Calon Tertanggung dengan Calon Pembayar Premi",
-  "Penghasilan Kotor Tahunan",
-  "Sumber Penghasilan",
-  "Nama Perusahaan (Tempat Kerja)",
-  "Jenis Usaha",
-  "Bidang Usaha",
-  "Jabatan",
-  "Uraian Pekerjaan (Bagian)",
-  "Status",
-  "Sudah Dibaca",
-  "Terakhir Dibaca"
-];
-
-const SYSTEM_KEYS = [
-  "Timestamp",
-  "Nomor Registrasi",
-  "Status",
-  "Sudah Dibaca",
-  "Terakhir Dibaca",
-  "Folder Dokumen"
-];
-
-try {
-  session = localStorage.getItem("frpAdminSession") || "";
-} catch {}
-
-$("loginBtn").onclick = login;
-$("adminPassword").onkeydown = event => {
-  if (event.key === "Enter") login();
-};
-$("refreshBtn").onclick = loadData;
-$("searchInput").oninput = render;
-$("logoutBtn").onclick = () => logout();
-$("closeDialog").onclick = () => $("detailDialog").close();
-$("exportPdfBtn").onclick = exportPdf;
-$("openFolderBtn").onclick = openFolder;
-$("whatsappBtn").onclick = openWhatsApp;
-$("deleteDataBtn").onclick = deleteData;
-
-document.querySelectorAll(".detail-tab").forEach(button => {
-  button.onclick = () => activateTab(button.dataset.tab);
-});
-
-function apiUrl() {
-  const url = window.APP_CONFIG?.API_URL || "";
-  if (!url || url.includes("PASTE_")) {
-    throw new Error("API_URL belum diisi pada assets/js/config.js.");
-  }
-  return url;
-}
-
-async function call(action, payload = {}) {
-  const response = await fetch(apiUrl(), {
-    method: "POST",
-    headers: {"Content-Type": "text/plain;charset=utf-8"},
-    body: JSON.stringify({action, ...payload})
-  });
-
-  const text = await response.text();
-  let data;
-
-  try {
-    data = JSON.parse(text);
-  } catch {
-    throw new Error("Respons backend tidak valid.");
-  }
-
-  if (!data.success) {
-    throw new Error(data.message || "Proses gagal.");
-  }
-
-  return data;
-}
-
-async function login() {
-  const username = $("adminUsername").value.trim();
-  const password = $("adminPassword").value;
-
-  if (!username || !password) {
-    return showLoginError("Username dan password wajib diisi.");
-  }
-
-  $("loginBtn").disabled = true;
-  $("loginBtn").textContent = "Memeriksa...";
-  $("loginError").hidden = true;
-
-  try {
-    const data = await call("login", {username, password});
-    session = data.session;
-
-    try {
-      localStorage.setItem("frpAdminSession", session);
-    } catch {}
-
-    $("adminPassword").value = "";
-    await loadData();
-  } catch (error) {
-    showLoginError(error.message);
-  } finally {
-    $("loginBtn").disabled = false;
-    $("loginBtn").textContent = "Masuk";
-  }
-}
-
-async function loadData() {
-  try {
-    const data = await call("listData", {session});
-    rows = data.rows || [];
-
-    const detailDialog = $("detailDialog");
-    if (detailDialog?.open) detailDialog.close();
-    detailDialog?.removeAttribute("open");
-
-    $("loginPanel").hidden = true;
-    $("dashboardPanel").hidden = false;
-    $("dashboardError").hidden = true;
-
-    updateStats();
-    render();
-  } catch (error) {
-    if (/sesi|login|token/i.test(error.message)) {
-      logout(false);
-    } else {
-      showDashboardError(error.message);
-    }
-  }
-}
-
-function updateStats() {}
-
-function render() {
-  const query = $("searchInput").value.trim().toLowerCase();
-
-  const filtered = rows.filter(row => {
-    const haystack = Object.values(row).join(" ").toLowerCase();
-    return !query || haystack.includes(query);
-  });
-
-  $("emptyState").hidden = filtered.length > 0;
-  $("tableBody").innerHTML = filtered.map(renderRow).join("");
-
-  document.querySelectorAll("[data-reg]").forEach(button => {
-    button.onclick = () => openDetail(button.dataset.reg);
-  });
-}
-function renderRow(row) {
-  const registration = row["Nomor Registrasi"] || "";
-  const name = row["Nama Tertanggung"] || "-";
-  const phone = row["Nomor Handphone Tertanggung"] || "-";
-  const email = row.Email || "-";
-  const read = isRead(row);
-
-  return `
-    <tr class="${read ? "" : "unread-row"}">
-      <td>
-        <strong class="registration-code">${esc(registration)}</strong>
-      </td>
-      <td>
-        <span class="table-date">${esc(row.Timestamp || "-")}</span>
-      </td>
-      <td>
-        <div class="person-cell">
-          <div class="person-avatar">${esc(getInitials(name))}</div>
-          <div>
-            <strong>${esc(name)}</strong>
-            <span>${esc(row["Jenis Kelamin Tertanggung"] || "-")}</span>
-          </div>
-        </div>
-      </td>
-      <td>
-        <div class="contact-cell">
-          <strong>${esc(phone)}</strong>
-          <span>${esc(email)}</span>
-        </div>
-      </td>
-      <td>
-        <button class="btn secondary small" data-reg="${escAttr(registration)}">
-          Lihat Detail
-        </button>
-      </td>
-    </tr>`;
-}
-async function openDetail(registrationNumber) {
-  try {
-    const data = await call("getDetail", {
-      session,
-      registrationNumber
-    });
-
-    selectedReg = registrationNumber;
-    selectedRow = data.row;
-
-    const name = selectedRow["Nama Tertanggung"] || "Nasabah";
-    const documents = getDocuments(selectedRow).filter(document => document.key !== "Folder Dokumen");
-
-    $("detailTitle").textContent = name;
-    $("detailMeta").textContent =
-      `${registrationNumber} • ${selectedRow.Timestamp || "Tanggal tidak tersedia"}`;
-
-
-    renderProfile(selectedRow);
-    renderAnswers(selectedRow);
-    renderDocuments(documents);
-    activateTab("profile");
-
-    const detailDialog = $("detailDialog");
-    if (detailDialog.open) detailDialog.close();
-    detailDialog.showModal();
-
-    const localRow = rows.find(row => row["Nomor Registrasi"] === registrationNumber);
-    if (localRow) {
-      localRow["Sudah Dibaca"] = "Ya";
-      localRow["Terakhir Dibaca"] = selectedRow["Terakhir Dibaca"] || "Baru dibuka";
-    }
-
-    updateStats();
-    render();
-  } catch (error) {
-    alert(error.message);
-  }
-}
-
-function renderProfile(row) {
-  const entries = PROFILE_KEYS
-    .filter(key => String(row[key] || "").trim())
-    .map(key => [key, row[key]]);
-
-  $("profileContent").innerHTML = entries.length
-    ? entries.map(([key, value]) => detailItem(key, value)).join("")
-    : emptyPanel("Data nasabah belum tersedia.");
-}
-
-function renderAnswers(row) {
-  const documents = new Set(getDocuments(row).map(item => item.key));
-
-  const entries = Object.entries(row).filter(([key, value]) => {
-    return String(value || "").trim() &&
-      !PROFILE_KEYS.includes(key) &&
-      !SYSTEM_KEYS.includes(key) &&
-      !documents.has(key) &&
-      !looksLikeDocument(key, value);
-  });
-
-  $("answerContent").innerHTML = entries.length
-    ? entries.map(([key, value]) => detailItem(key, value)).join("")
-    : emptyPanel("Jawaban kuisioner belum tersedia.");
-}
-
-function renderDocuments(documents) {
-  const folderUrl = selectedRow?.["Folder Dokumen"] || "";
-
-  const folderCard = folderUrl
-    ? `
-      <article class="document-card folder-document-card">
-        <div class="document-icon folder-icon">DIR</div>
-        <div class="document-card-body">
-          <small>Folder Dokumen</small>
-          <strong>Seluruh dokumen pengajuan</strong>
-        </div>
-        <div class="document-card-actions">
-          <a class="btn folder-btn small" href="${escAttr(folderUrl)}" target="_blank" rel="noopener">
-            Buka Folder
-          </a>
-        </div>
-      </article>`
-    : "";
-
-  const fileCards = documents
-    .filter(document => document.key !== "Folder Dokumen")
-    .map(document => `
-      <article class="document-card">
-        <div class="document-icon">${documentIcon(document.url)}</div>
-        <div class="document-card-body">
-          <small>${esc(document.key)}</small>
-          <strong>${esc(cleanDocumentTitle(document.key))}</strong>
-        </div>
-        <div class="document-card-actions">
-          <a class="btn secondary small" href="${escAttr(document.url)}" target="_blank" rel="noopener">
-            Preview
-          </a>
-          <a class="btn download-btn small" href="${escAttr(getDownloadUrl(document.url))}" target="_blank" rel="noopener">
-            Download
-          </a>
-        </div>
-      </article>
-    `).join("");
-
-  $("documentContent").innerHTML = folderCard || fileCards
-    ? folderCard + fileCards
-    : emptyPanel("Tidak ada dokumen yang tersimpan.");
-}
-function getDocuments(row) {
-  const documents = [];
-
-  Object.entries(row).forEach(([key, value]) => {
-    const urls = extractUrls(value);
-
-    if (urls.length && looksLikeDocument(key, value)) {
-      urls.forEach(url => documents.push({key, url}));
-    }
-  });
-
-  return documents;
-}
-
-function looksLikeDocument(key, value) {
-  const label = String(key).toLowerCase();
-  const text = String(value || "");
-
-  return /foto|dokumen|ktp|kartu keluarga|buku bank|lampiran|folder/i.test(label) ||
-    /^https?:\/\/(drive\.google\.com|docs\.google\.com)/i.test(text.trim());
-}
-
-function extractUrls(value) {
-  return String(value || "")
-    .split(/\s+/)
-    .map(item => item.trim())
-    .filter(item => /^https?:\/\//i.test(item));
-}
-
-function detailItem(key, value) {
-  return `
-    <div class="detail-item">
-      <small>${esc(key)}</small>
-      <div>${renderValue(value)}</div>
-    </div>`;
-}
-
-function activateTab(tabName) {
-  document.querySelectorAll(".detail-tab").forEach(button => {
-    button.classList.toggle("active", button.dataset.tab === tabName);
-  });
-
-  document.querySelectorAll(".detail-tab-panel").forEach(panel => {
-    panel.classList.toggle("active", panel.id === `tab-${tabName}`);
-  });
-}
-
-async function exportPdf() {
-  if (!selectedReg) return;
-
-  $("exportPdfBtn").disabled = true;
-  $("exportPdfBtn").textContent = "Membuat PDF...";
-
-  try {
-    const data = await call("exportPdf", {
-      session,
-      registrationNumber: selectedReg
-    });
-
-    const link = document.createElement("a");
-    link.href = data.url;
-    link.download = "";
-    link.style.display = "none";
-
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-  } catch (error) {
-    alert(error.message);
-  } finally {
-    $("exportPdfBtn").disabled = false;
-    $("exportPdfBtn").textContent = "Download PDF";
-  }
-}
-function openFolder() {
-  const folderUrl = selectedRow?.["Folder Dokumen"] || "";
-
-  if (!folderUrl) {
-    alert("Folder Google Drive tidak ditemukan.");
-    return;
-  }
-
-  window.open(folderUrl, "_blank", "noopener");
-}
-
-function openWhatsApp() {
-  if (!selectedRow) return;
-
-  const phone =
-    selectedRow["Nomor Handphone Tertanggung"] ||
-    selectedRow["Nomor Handphone Pemegang Polis"] ||
-    "";
-
-  if (!phone) {
-    alert("Nomor WhatsApp tidak tersedia.");
-    return;
-  }
-
-  let whatsappNumber = String(phone).replace(/\D/g, "");
-
-  if (whatsappNumber.indexOf("0") === 0) {
-    whatsappNumber = "62" + whatsappNumber.substring(1);
-  } else if (whatsappNumber.indexOf("62") !== 0) {
-    whatsappNumber = "62" + whatsappNumber;
-  }
-
-  window.open(
-    "https://wa.me/" + whatsappNumber,
-    "_blank",
-    "noopener"
-  );
-}
-
-async function deleteData() {
-  if (!selectedReg || !selectedRow) return;
-
-  const name = selectedRow["Nama Tertanggung"] || "Nasabah";
-  const confirmed = confirm(
-    `Hapus pengajuan ini?\n\nNama: ${name}\nRegistrasi: ${selectedReg}\n\nData di Google Sheets, folder dokumen, dan PDF akan dipindahkan ke Sampah. Tindakan ini tidak dapat dibatalkan dari dashboard.`
-  );
-
-  if (!confirmed) return;
-
-  $("deleteDataBtn").disabled = true;
-  $("deleteDataBtn").textContent = "Menghapus...";
-
-  try {
-    await call("deleteData", {
-      session,
-      registrationNumber: selectedReg
-    });
-
-    $("detailDialog").close();
-    selectedReg = "";
-    selectedRow = null;
-    await loadData();
-    alert("Pengajuan berhasil dihapus.");
-  } catch (error) {
-    alert(error.message);
-  } finally {
-    $("deleteDataBtn").disabled = false;
-    $("deleteDataBtn").textContent = "Hapus";
-  }
-}
-
-function cleanDocumentTitle(label) {
-  return String(label || "Dokumen")
-    .replace(/^\d+[a-z]?(?:\.\d+)?\.?\s*/i, "")
-    .replace(/\s*\([^)]*\)\s*/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function getDownloadUrl(url) {
-  const fileId = getDriveFileId(url);
-  return fileId
-    ? `https://drive.google.com/uc?export=download&id=${encodeURIComponent(fileId)}`
-    : url;
-}
-
-function getDriveFileId(url) {
-  const text = String(url || "");
-
-  const fileMatch = text.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-  if (fileMatch) return fileMatch[1];
-
-  const idMatch = text.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-  if (idMatch) return idMatch[1];
-
-  return "";
-}
-
-function logout(showMessage = true) {
-  const detailDialog = $("detailDialog");
-  if (detailDialog?.open) detailDialog.close();
-  detailDialog?.removeAttribute("open");
-
-  session = "";
-  rows = [];
-  selectedReg = "";
-  selectedRow = null;
-
-  try {
-    localStorage.removeItem("frpAdminSession");
-  } catch {}
-
-  $("dashboardPanel").hidden = true;
-  $("loginPanel").hidden = false;
-
-  if (showMessage) {
-    showLoginError("Anda sudah keluar dari dashboard.");
-  }
-}
-
-function isRead(row) {
-  return String(row["Sudah Dibaca"] || "").toLowerCase() === "ya";
-}
-
-function statusClass(status) {
-  return {
-    "Baru": "status-blue",
-    "Sedang Dicek": "status-yellow",
-    "Dokumen Kurang": "status-red",
-    "Sudah Lengkap": "status-green",
-    "Selesai": "status-dark"
-  }[status] || "status-blue";
-}
-
-function getInitials(name) {
-  return String(name || "N")
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map(word => word[0])
-    .join("")
-    .toUpperCase();
-}
-
-function documentIcon(url) {
-  const lower = String(url).toLowerCase();
-  if (lower.includes(".pdf")) return "PDF";
-  return "IMG";
-}
-
-function documentName(url) {
-  try {
-    return decodeURIComponent(new URL(url).pathname.split("/").filter(Boolean).pop() || "Dokumen");
-  } catch {
-    return "Dokumen";
-  }
-}
-
-function emptyPanel(message) {
-  return `<div class="tab-empty">${esc(message)}</div>`;
-}
-
-function renderValue(value) {
-  const text = String(value);
-
-  if (/^https?:\/\//i.test(text.trim())) {
-    return `<a href="${escAttr(text.trim())}" target="_blank" rel="noopener">Buka tautan</a>`;
-  }
-
-  return esc(text);
-}
-
-function showLoginError(message) {
-  $("loginError").textContent = message;
-  $("loginError").hidden = false;
-}
-
-function showDashboardError(message) {
-  $("dashboardError").textContent = message;
-  $("dashboardError").hidden = false;
-}
-
-function esc(value) {
-  return String(value).replace(/[&<>'"]/g, character => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    "'": "&#39;",
-    '"': "&quot;"
-  }[character]));
-}
-
-function escAttr(value) {
-  return esc(value);
-}
-
-if (session) loadData();
-
-setInterval(() => {
-  if (session) loadData();
-}, 30000);
+:root{--bg:#f4f7fb;--card:#fff;--text:#172033;--muted:#667085;--line:#dfe5ee;--primary:#2457d6;--primary2:#173f9e;--danger:#b42318;--success:#0b8f55;--warning:#b54708;--shadow:0 18px 55px rgba(27,45,86,.10)}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:linear-gradient(180deg,#edf3ff 0,#f7f9fc 42%,#f4f7fb 100%);color:var(--text)}
+.page-shell{min-height:100vh;padding:32px 16px;display:flex;justify-content:center}.form-card{width:min(900px,100%);background:var(--card);border:1px solid rgba(30,64,175,.08);border-radius:24px;padding:34px;box-shadow:var(--shadow)}.form-header h1,.admin-top h1,.login-card h1{margin:4px 0 10px;font-size:clamp(28px,5vw,42px);line-height:1.1}.form-header p,.login-card p,.admin-subtitle{color:var(--muted);line-height:1.65}.eyebrow{font-weight:800;letter-spacing:.14em;color:var(--primary);font-size:12px;margin:0}
+input,select,textarea{width:100%;margin-top:9px;border:1px solid var(--line);border-radius:12px;padding:13px 14px;font:inherit;color:var(--text);background:#fff;outline:none;transition:.2s}input:focus,select:focus,textarea:focus{border-color:var(--primary);box-shadow:0 0 0 4px rgba(36,87,214,.1)}textarea{resize:vertical}
+.btn{border:0;border-radius:12px;padding:13px 20px;font-weight:800;font-size:14px;cursor:pointer;text-decoration:none;text-align:center;display:inline-flex;align-items:center;justify-content:center;gap:7px}.btn.primary{background:linear-gradient(135deg,var(--primary),var(--primary2));color:#fff}.btn.secondary{background:#eef2f8;color:var(--text)}.btn.pdf-btn{background:#eaf8f1;color:#087443}.btn.small{padding:9px 12px;font-size:12px}.btn:disabled{opacity:.6;cursor:not-allowed}.full{width:100%;margin-top:16px}.error-box{background:#fff1f0;color:var(--danger);border:1px solid #ffd1cc;padding:12px 14px;border-radius:12px;margin-top:18px}
+.admin-shell{min-height:100vh;padding:28px;max-width:1500px;margin:auto}.login-card{max-width:440px;margin:8vh auto;background:#fff;border-radius:24px;padding:34px;box-shadow:var(--shadow)}.login-card label{display:block;font-weight:700;margin-top:14px}.brand-mark{width:54px;height:54px;border-radius:16px;display:grid;place-items:center;background:linear-gradient(135deg,var(--primary),var(--primary2));color:#fff;font-weight:900;margin-bottom:22px}
+.admin-top{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;margin-bottom:22px}.admin-top h1{font-size:clamp(27px,4vw,38px)}.admin-subtitle{margin:0}.admin-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.notification-btn{position:relative;width:46px;height:46px;border:1px solid var(--line);background:#fff;border-radius:13px;cursor:pointer;font-size:20px}.notification-badge{position:absolute;right:-5px;top:-7px;min-width:22px;height:22px;padding:0 6px;display:grid;place-items:center;border-radius:999px;background:#e11d48;color:#fff;font-size:11px;font-weight:900;border:2px solid #fff}
+.stats-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:14px;margin-bottom:18px}.stat-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 7px 24px rgba(27,45,86,.04)}.stat-card span{display:block;color:var(--muted);font-size:12px;font-weight:700}.stat-card strong{display:block;font-size:30px;margin-top:7px}.stat-card small{display:block;color:#98a2b3;margin-top:4px}.data-card{background:#fff;border:1px solid var(--line);border-radius:20px;padding:15px;box-shadow:0 8px 30px rgba(27,45,86,.05)}
+.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}.search-box{display:flex;align-items:center;gap:8px;flex:1;min-width:260px;border:1px solid var(--line);border-radius:12px;padding-left:13px;background:#fff}.search-box input{margin:0;border:0;box-shadow:none!important;padding-left:0}.toolbar select{margin:0;width:auto;min-width:160px}.table-summary{display:flex;justify-content:space-between;color:var(--muted);font-size:12px;padding:2px 4px 12px}.table-wrap{overflow:auto;border-radius:14px;border:1px solid var(--line)}table{border-collapse:collapse;width:100%}th,td{padding:13px 14px;border-bottom:1px solid var(--line);text-align:left;font-size:13px;vertical-align:middle}th{background:#f7f9fc;color:#475467;font-size:12px;white-space:nowrap}tbody tr:hover{background:#fafcff}.unread-row{background:#f7faff}.reg-cell{display:flex;align-items:center;gap:8px;white-space:nowrap}.new-dot{width:8px;height:8px;border-radius:50%;background:#2563eb;box-shadow:0 0 0 4px #dbeafe}.status-pill{display:inline-block;padding:6px 9px;border-radius:999px;font-weight:800;font-size:11px;white-space:nowrap}.status-baru{background:#eaf0ff;color:#1947b8}.status-sedang-dicek{background:#fff6e5;color:#9a5b00}.status-dokumen-kurang{background:#fff0ef;color:#b42318}.status-sudah-lengkap{background:#e9fbf2;color:#087443}.status-selesai{background:#edf0f5;color:#344054}.empty{text-align:center;padding:46px;color:var(--muted)}
+.detail-dialog,.preview-dialog{width:min(1080px,calc(100% - 24px));max-height:92vh;border:0;border-radius:22px;padding:0;box-shadow:0 25px 80px rgba(0,0,0,.25)}.detail-dialog::backdrop,.preview-dialog::backdrop{background:rgba(15,23,42,.58)}.dialog-head{display:flex;justify-content:space-between;align-items:center;padding:21px 24px;border-bottom:1px solid var(--line)}.dialog-head h2{margin:4px 0 0;font-size:21px}.icon-close{border:0;background:#eef2f8;width:40px;height:40px;border-radius:50%;font-size:26px;cursor:pointer}.detail-toolbar{display:flex;gap:10px;align-items:end;padding:15px 24px;background:#f8fafc;border-bottom:1px solid var(--line)}.detail-toolbar label{flex:1;font-weight:700}.detail-toolbar select{margin-top:6px}.detail-sections{padding:22px 24px;overflow:auto;max-height:67vh}.detail-section{margin-bottom:23px}.detail-section h3{font-size:16px;margin:0 0 12px}.detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}.detail-item{border:1px solid var(--line);border-radius:13px;padding:13px;background:#fff}.detail-item small,.document-card small{display:block;color:var(--muted);margin-bottom:5px}.detail-item div{white-space:pre-wrap;word-break:break-word}.document-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}.document-card{border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;justify-content:space-between;gap:14px;align-items:center}.document-card strong{display:block;word-break:break-word}.document-actions{display:flex;gap:7px;flex-shrink:0}.preview-body{height:70vh;background:#f3f5f8}.preview-body iframe{width:100%;height:100%;border:0}.preview-fallback{padding:40px;text-align:center}.preview-fallback a{display:block;margin-top:12px;color:var(--primary);font-weight:800}.toast{position:fixed;right:24px;bottom:24px;background:#172033;color:#fff;padding:14px 18px;border-radius:13px;box-shadow:0 15px 45px rgba(0,0,0,.25);z-index:1000;font-weight:700}
+/* Form lama tetap didukung */.progress-wrap{margin:28px 0}.progress-meta{display:flex;justify-content:space-between;font-size:13px;font-weight:700;color:var(--muted);margin-bottom:8px}.progress-track{height:9px;background:#e8edf6;border-radius:999px;overflow:hidden}.progress-bar{height:100%;background:linear-gradient(90deg,var(--primary),#6d8eff);width:11%;transition:.25s}.step{display:none}.step.active{display:block}.step h2{font-size:24px;margin:0 0 20px}.section-note{background:#f7f9fd;border:1px solid var(--line);padding:15px 16px;border-radius:14px;color:#475467;line-height:1.55;margin-bottom:22px}.question{display:flex;gap:14px;padding:18px 0;border-bottom:1px solid #edf0f5;font-weight:700;font-size:14px}.question-number{min-width:34px;color:var(--muted)}.question-body{flex:1;min-width:0}.question-text{display:block;line-height:1.55}.question-text span{color:var(--danger);margin-left:4px}.checkbox-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}.checkbox-list label{display:flex;gap:8px;align-items:center;font-weight:600}.checkbox-list input{width:auto;margin:0}.file-status{display:block;color:var(--muted);margin-top:7px;font-weight:500}.actions{display:flex;justify-content:flex-end;gap:12px;border-top:1px solid var(--line);margin-top:28px;padding-top:22px}.review-intro{text-align:center;margin-bottom:20px}.review-intro p{color:var(--muted)}.review-list{display:grid;gap:10px}.review-item{border:1px solid var(--line);border-radius:12px;padding:12px 14px}.review-item small{display:block;color:var(--muted);margin-bottom:4px}.review-item strong{display:block;white-space:pre-wrap;word-break:break-word}.success-card{text-align:center;max-width:560px;margin:auto}.success-icon{width:74px;height:74px;background:#e9fbf2;color:var(--success);border-radius:50%;display:grid;place-items:center;font-size:38px;font-weight:900;margin:10px auto 22px}.registration{background:#f6f8fc;border-radius:12px;padding:14px}.registration small,.registration strong{display:block}.yes-no-group{display:flex;gap:12px;margin-top:14px;flex-wrap:wrap}.choice-card{display:flex;align-items:center;gap:9px;min-width:110px;padding:12px 18px;border:1px solid #d8e1ee;border-radius:12px;background:#fff;cursor:pointer;font-weight:700}.choice-card:has(input:checked){border-color:#2563eb;background:#eff6ff;box-shadow:0 0 0 3px rgba(37,99,235,.10)}.choice-card input{width:18px;height:18px;margin:0;accent-color:#2563eb}.conditional-detail{margin-top:14px;padding:14px;border-radius:12px;background:#f8fafc;border:1px solid #e2e8f0}.conditional-detail[hidden],.question[hidden]{display:none!important}.identity-question{grid-template-columns:1fr!important}.identity-question .identity-number{display:none!important}.question-disabled{opacity:.58;background:#f8fafc;border-radius:12px;padding-left:10px;padding-right:10px}.question-disabled input,.question-disabled select,.question-disabled textarea{background:#eef2f6;color:#667085;cursor:not-allowed}
+@media(max-width:1180px){.stats-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:760px){.admin-shell{padding:15px}.admin-top{align-items:stretch;flex-direction:column}.admin-actions>*{flex:1}.stats-grid,.detail-grid,.document-grid{grid-template-columns:1fr 1fr}.toolbar{align-items:stretch}.toolbar>*{width:100%!important}.detail-toolbar{flex-wrap:wrap}.detail-toolbar label{flex-basis:100%}.document-card{align-items:flex-start;flex-direction:column}.form-card{padding:22px;border-radius:18px}.checkbox-list{grid-template-columns:1fr}.actions .btn{flex:1}}
+@media(max-width:520px){.stats-grid,.detail-grid,.document-grid{grid-template-columns:1fr}.detail-toolbar{flex-direction:column;align-items:stretch}.detail-toolbar>*{width:100%}.table-summary{flex-direction:column;gap:4px}.choice-card{flex:1;justify-content:center}.yes-no-group{display:grid;grid-template-columns:1fr 1fr}}
+.message{padding:12px 14px;border-radius:12px;margin-top:16px}
+.message.success{background:#ecfdf3;color:#067647;border:1px solid #abefc6}
+.message.error{background:#fff1f0;color:#b42318;border:1px solid #fecdca}
+.new-badge{display:inline-block;padding:5px 9px;border-radius:999px;background:#e8f2ff;color:#1450b8;font-weight:800}
+.unread-row{background:#f7fbff}
+.small{padding:8px 12px}
+dialog .dialog-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:16px 24px;background:#f8fafc}
+dialog .dialog-actions select{width:auto;margin:0}
+
+/* Pastikan atribut hidden tidak ditimpa layout tombol, terutama di Safari */
+[hidden]{display:none!important;}
+.actions [hidden]{display:none!important;}
+
+
+/* =========================================================
+   ADMIN DASHBOARD — CLEAN LAYOUT
+   ========================================================= */
+[hidden]{display:none!important}
+
+body.admin-page{
+  min-height:100vh;
+  background:#f3f6fb;
   overflow-x:hidden;
 }
 
@@ -1687,5 +1130,61 @@ setInterval(() => {
 
   .admin-page .whatsapp-btn{
     width:100%;
+  }
+}
+
+
+/* =========================================================
+   SIMPLE ADMIN DASHBOARD FINAL
+   ========================================================= */
+.admin-page .simple-toolbar{
+  display:block;
+  margin-bottom:14px;
+}
+
+.admin-page .simple-toolbar .search-box{
+  width:100%;
+}
+
+.admin-page .simple-detail-actions{
+  justify-content:flex-end;
+}
+
+.admin-page .simple-detail-actions .detail-action-buttons{
+  width:100%;
+  justify-content:flex-end;
+}
+
+.admin-page .simple-detail-actions .btn{
+  min-width:130px;
+}
+
+@media(max-width:760px){
+  .admin-page .admin-header{
+    gap:14px;
+  }
+
+  .admin-page .admin-actions{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    width:100%;
+  }
+
+  .admin-page .admin-actions .btn{
+    width:100%;
+  }
+
+  .admin-page .simple-detail-actions{
+    padding:16px;
+  }
+
+  .admin-page .simple-detail-actions .detail-action-buttons{
+    display:grid;
+    grid-template-columns:1fr;
+  }
+
+  .admin-page .simple-detail-actions .btn{
+    width:100%;
+    min-height:52px;
   }
 }
