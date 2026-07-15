@@ -32,8 +32,7 @@ const PROFILE_KEYS = [
   "Jenis Usaha",
   "Bidang Usaha",
   "Jabatan",
-  "Uraian Pekerjaan (Bagian)",
-  "Status"
+  "Uraian Pekerjaan (Bagian)"
 ];
 
 const SYSTEM_KEYS = [
