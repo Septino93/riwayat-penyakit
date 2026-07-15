@@ -1,5 +1,11 @@
 const $ = id => document.getElementById(id);
 
+window.addEventListener("DOMContentLoaded", () => {
+  const dialog = $("detailDialog");
+  if (dialog?.open) dialog.close();
+  dialog?.removeAttribute("open");
+});
+
 let rows = [];
 let selectedReg = "";
 let selectedRow = null;
@@ -130,6 +136,10 @@ async function loadData() {
     const data = await call("listData", {session});
     rows = data.rows || [];
 
+    const detailDialog = $("detailDialog");
+    if (detailDialog?.open) detailDialog.close();
+    detailDialog?.removeAttribute("open");
+
     $("loginPanel").hidden = true;
     $("dashboardPanel").hidden = false;
     $("dashboardError").hidden = true;
@@ -255,7 +265,9 @@ async function openDetail(registrationNumber) {
     renderDocuments(documents);
     activateTab("profile");
 
-    $("detailDialog").showModal();
+    const detailDialog = $("detailDialog");
+    if (detailDialog.open) detailDialog.close();
+    detailDialog.showModal();
 
     const localRow = rows.find(row => row["Nomor Registrasi"] === registrationNumber);
     if (localRow) {
@@ -517,6 +529,10 @@ function getDriveFileId(url) {
 }
 
 function logout(showMessage = true) {
+  const detailDialog = $("detailDialog");
+  if (detailDialog?.open) detailDialog.close();
+  detailDialog?.removeAttribute("open");
+
   session = "";
   rows = [];
   selectedReg = "";
